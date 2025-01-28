@@ -225,11 +225,30 @@
   <div class="content">
     <h1>Subcategories</h1>
     <form id="createSubCategoryForm">
+      <!-- Existing subcategory input fields -->
       <input type="text" name="name" placeholder="Subcategory Name" required>
       <input type="text" name="image" placeholder="Image URL" required>
       <input type="text" name="description" placeholder="Description" required>
+    
+      <!-- Tax Applicability -->
+      <label for="taxApplicability">Tax Applicability:</label>
+      <select name="taxApplicability" id="taxApplicability">
+        <option value="true">Yes</option>
+        <option value="false" selected>No</option>
+      </select>
+    
+      <!-- Tax Fields -->
+      <div id="taxFields" style="display: none;">
+        <input type="number" name="tax" placeholder="Tax Amount">
+        <select name="taxType">
+          <option value="percentage">Percentage</option>
+          <option value="fixed">Fixed</option>
+        </select>
+      </div>
+    
       <button type="submit">Create Subcategory</button>
-    </form>
+    </form>    
+    
 
     <ul id="subCategoryList">
       <% subCategories.forEach(subCategory => { %>
@@ -237,10 +256,17 @@
           <strong><%= subCategory.name %></strong>
           <img src="<%= subCategory.image %>" alt="<%= subCategory.name %>">
           <p><%= subCategory.description %></p>
+          <p><strong>Tax Applicability:</strong> <%= subCategory.taxApplicability ? 'Yes' : 'No' %></p>
+          <% if (subCategory.taxApplicability) { %>
+            <p><strong>Tax:</strong> ₹<%= subCategory.tax %></p>
+            <p><strong>Tax Type:</strong> <%= subCategory.taxType %></p>
+          <% } %>
           <a href="/categories/<%= categoryId %>/subcategories/<%= subCategory._id %>/items" class="view-button">View Items</a>
+          <a href="/subcategories/<%= subCategory._id %>/edit" class="view-button" style="background: #2cb67d;">Edit</a>
         </li>
       <% }) %>
     </ul>
+    
   </div>
 
   <script>
@@ -318,6 +344,15 @@
         alert('Error: ' + error.message);
       }
     });
+
+    
+      document.getElementById('taxApplicability').addEventListener('change', (e) => {
+        const taxFields = document.getElementById('taxFields');
+        taxFields.style.display = e.target.value === 'true' ? 'block' : 'none';
+      });
+    
+    
+    
   </script>
 </body>
 </html>

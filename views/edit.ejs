@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Category</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: #f0f0f0;
+      min-height: 100vh;
+      position: relative;
+      background: #0f2027;
+    }
+
+    #particles-js {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .content {
+      position: relative;
+      z-index: 2;
+      padding: 2rem;
+    }
+
+    h1 {
+      color: #00d4ff;
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 2.5rem;
+      text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+    }
+
+    form {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: rgba(15, 31, 50, 0.8);
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      border-radius: 8px;
+      color: #f0f0f0;
+      transition: all 0.3s ease;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3);
+    }
+
+    button {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(90deg, #00d4ff, #0078ff);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background: linear-gradient(90deg, #0078ff, #0059d4);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
+    }
+
+    .back-button {
+      display: block;
+      text-align: center;
+      margin: 1rem auto 2rem;
+      padding: 0.75rem 1.5rem;
+      background: #ff4d4d;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      max-width: 200px;
+    }
+
+    .back-button:hover {
+      background: #d43838;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 77, 77, 0.4);
+    }
+
+    #taxFields {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="particles-js"></div>
+  <div class="content">
+    <h1>Edit Category</h1>
+    <a href="/categories" class="back-button">Back to Categories</a>
+    <form id="editCategoryForm">
+      <input type="text" name="name" placeholder="Category Name" value="<%= category.name %>" required>
+      <input type="text" name="image" placeholder="Image URL" value="<%= category.image %>" required>
+      <input type="text" name="description" placeholder="Description" value="<%= category.description %>" required>
+      
+      <label for="taxApplicability">Tax Applicability:</label>
+      <select name="taxApplicability" id="taxApplicability">
+        <option value="true" <%= category.taxApplicability ? 'selected' : '' %>>Yes</option>
+        <option value="false" <%= !category.taxApplicability ? 'selected' : '' %>>No</option>
+      </select>
+
+      <div id="taxFields" style="display: <%= category.taxApplicability ? 'block' : 'none' %>;">
+        <input type="number" name="tax" placeholder="Tax" value="<%= category.tax || 0 %>">
+        <label for="taxType">Tax Type:</label>
+        <select name="taxType" id="taxType">
+          <option value="percentage" <%= category.taxType === 'percentage' ? 'selected' : '' %>>Percentage</option>
+          <option value="fixed" <%= category.taxType === 'fixed' ? 'selected' : '' %>>Fixed</option>
+        </select>
+      </div>
+    
+      <button type="submit">Update Category</button>
+    </form>
+  </div>
+
+  <script>
+    particlesJS('particles-js', {
+      particles: {
+        number: { value: 100, density: { enable: true, value_area: 1000 } },
+        color: { value: '#00d4ff' },
+        shape: { type: 'circle' },
+        opacity: { value: 0.5 },
+        size: { value: 3, random: true },
+        line_linked: { enable: true, distance: 150, color: '#00d4ff', opacity: 0.2, width: 1 },
+        move: { enable: true, speed: 2 }
+      },
+      interactivity: {
+        detect_on: 'canvas',
+        events: { onhover: { enable: true, mode: 'grab' }, onclick: { enable: true, mode: 'push' } },
+        modes: { grab: { distance: 140, line_linked: { opacity: 0.5 } }, push: { particles_nb: 4 } }
+      },
+      retina_detect: true
+    });
+
+    const taxApplicabilityField = document.getElementById('taxApplicability');
+    const taxFieldsContainer = document.getElementById('taxFields');
+
+    // Toggle visibility of tax fields based on Tax Applicability
+    taxApplicabilityField.addEventListener('change', (e) => {
+      const isTaxApplicable = e.target.value === 'true';
+      taxFieldsContainer.style.display = isTaxApplicable ? 'block' : 'none';
+    });
+
+    document.getElementById('editCategoryForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData.entries());
+
+      // Ensure tax fields are cleared when not applicable
+      if (data.taxApplicability === 'false') {
+        data.tax = 0;
+        data.taxType = null;
+      }
+
+      try {
+        const response = await fetch('/categories/<%= category._id %>', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          alert('Category updated successfully!');
+          window.location.href = '/categories';
+        } else {
+          throw new Error('Failed to update category');
+        }
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    });
+  </script>
+</body>
+</html>
