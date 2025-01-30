@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Subcategory</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script>
+        function toggleTaxFields() {
+            let overrideTax = document.getElementById("overrideTax").checked;
+            let taxFields = document.getElementById("taxFields");
+            taxFields.style.display = overrideTax ? "block" : "none";
+        }
+
+        function submitForm(event) {
+            event.preventDefault();
+            document.getElementById("loader").style.display = "block";
+            document.getElementById("submitButton").disabled = true;
+        
+            let formData = new FormData(document.getElementById("editSubcategoryForm"));
+            let jsonData = {};
+            formData.forEach((value, key) => jsonData[key] = value);
+        
+            fetch(`/api/v1/subcategories/${jsonData.subcategoryId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(jsonData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("submitButton").disabled = false;
+        
+                if (data.success) {
+                    toastr.success(`Subcategory '${jsonData.name}' in '${jsonData.categoryName}' updated successfully!`, "Success");
+        
+                    let subcategoryElement = document.getElementById(`subcategory-${jsonData.subcategoryId}`);
+                    if (subcategoryElement) {
+                        subcategoryElement.querySelector(".subcategory-title").innerText = jsonData.name;
+                        subcategoryElement.querySelector(".subcategory-description").innerText = jsonData.description;
+                        subcategoryElement.querySelector(".subcategory-img").src = jsonData.image;
+        
+                        let taxText = jsonData.taxApplicability === "true"
+                            ? (jsonData.taxType === "percentage" ? jsonData.tax + "%" : "₹" + jsonData.tax)
+                            : "Not Applicable";
+                        subcategoryElement.querySelector(".subcategory-tax").innerText = `Tax: ${taxText}`;
+                    }
+        
+                    // ✅ Redirect Immediately
+                    setTimeout(() => {
+                        window.location.assign(`/api/v1/categories/${jsonData.categoryId}/subcategories`);
+                    }, 1500);
+                } else {
+                    throw new Error(data.message || "Unknown error occurred");
+                }
+            })
+            .catch(error => {
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("submitButton").disabled = false;
+                toastr.error(error.message || "Failed to communicate with the server", "Error");
+            });
+        }
+    </script>        
+</head>
+<body>
+
+    <div class="container mt-4">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/api/v1/categories">Categories</a></li>
+                <li class="breadcrumb-item"><a href="/api/v1/categories/<%= category._id %>/subcategories"><%= category.name %></a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit Subcategory</li>
+            </ol>
+        </nav>
+
+        <h2>Edit Subcategory</h2>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="alert alert-danger" style="display: none;"></div>
+
+        <!-- Loader -->
+        <div id="loader" class="spinner-border text-primary" style="display: none;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+
+        <form id="editSubcategoryForm" onsubmit="submitForm(event)">
+            <input type="hidden" name="subcategoryId" value="<%= subcategory._id %>">
+            <input type="hidden" name="categoryId" value="<%= category._id %>">
+
+            <!-- Category (Non-Editable) -->
+            <div class="mb-3">
+                <label class="form-label">Category</label>
+                <input type="text" class="form-control" value="<%= category.name %>" readonly>
+            </div>
+
+            <!-- Subcategory Name -->
+            <div class="mb-3">
+                <label class="form-label">Subcategory Name</label>
+                <input type="text" name="name" class="form-control" value="<%= subcategory.name %>" required>
+            </div>
+
+            <!-- Image URL -->
+            <div class="mb-3">
+                <label class="form-label">Image URL</label>
+                <input type="url" name="image" class="form-control" value="<%= subcategory.image %>" required>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea name="description" class="form-control" required><%= subcategory.description %></textarea>
+            </div>
+
+            <!-- Tax Inheritance -->
+            <div class="mb-3">
+                <label class="form-label">Tax Settings</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="overrideTax" name="overrideTax" value="true" onchange="toggleTaxFields()" <%= subcategory.overrideTax ? "checked" : "" %>>
+                    <label class="form-check-label" for="overrideTax">
+                        Override Category Tax (Currently Inheriting from "<%= category.name %>")
+                    </label>
+                </div>
+            </div>
+
+            <!-- Tax Fields (Hidden by Default) -->
+            <div id="taxFields" class="mb-3" style="display: <%= subcategory.overrideTax ? "block" : "none" %>;">
+                <div class="mb-3">
+                    <label class="form-label">Tax Applicability</label>
+                    <select name="taxApplicability" class="form-control">
+                        <option value="true" <%= subcategory.taxApplicability ? "selected" : "" %>>Applicable</option>
+                        <option value="false" <%= !subcategory.taxApplicability ? "selected" : "" %>>Not Applicable</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Tax Type</label>
+                    <select name="taxType" class="form-control">
+                        <option value="percentage" <%= subcategory.taxType === "percentage" ? "selected" : "" %>>Percentage</option>
+                        <option value="fixed" <%= subcategory.taxType === "fixed" ? "selected" : "" %>>Fixed</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Tax Amount</label>
+                    <input type="number" name="tax" class="form-control" value="<%= subcategory.tax %>" min="0" max="100">
+                </div>
+            </div>
+
+            <!-- Save & Cancel Buttons -->
+            <button id="submitButton" type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="/api/v1/categories/<%= category._id %>/subcategories" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+
+</body>
+</html>

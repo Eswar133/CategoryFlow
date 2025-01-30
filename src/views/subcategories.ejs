@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subcategories</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #475569;
+            --hover-color: #334155;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --background-light: #f8fafc;
+            --card-shadow: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            background-color: var(--background-light);
+        }
+
+        .subcategory-card {
+            height: 450px;
+            transition: all 0.2s ease;
+            margin-bottom: 2rem;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .subcategory-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px var(--card-shadow);
+        }
+
+        .subcategory-img-wrapper {
+            height: 200px;
+            overflow: hidden;
+            background-color: var(--background-light);
+        }
+
+        .subcategory-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .subcategory-card:hover .subcategory-img {
+            transform: scale(1.05);
+        }
+
+        .subcategory-body {
+            padding: 1.25rem;
+            height: calc(450px - 200px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .subcategory-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .subcategory-description {
+            flex-grow: 1;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            margin-bottom: 1rem;
+        }
+
+        .subcategory-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: auto;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-view, .btn-edit, .btn-delete {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-view:hover, .btn-edit:hover, .btn-delete:hover {
+            background-color: var(--hover-color);
+            border-color: var(--hover-color);
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Subcategories</h1>
+
+        <!-- Create Subcategory Form -->
+        <div class="create-form">
+            <div class="form-header">
+                <h2>Create New Subcategory</h2>
+            </div>
+            <div class="card-body">
+                <% if (typeof errors !== 'undefined' && errors.length > 0) { %>
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            <% errors.forEach(error => { %>
+                                <li><%= error.msg %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                <% } %>
+                <form action="/api/v1/categories/<%= category._id %>/subcategories" method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Subcategory Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Image URL</label>
+                        <input type="url" class="form-control" id="image" name="image" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="taxApplicability" class="form-label">Tax Applicability</label>
+                            <select class="form-control" id="taxApplicability" name="taxApplicability">
+                                <option value="true">Applicable</option>
+                                <option value="false">Not Applicable</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="taxType" class="form-label">Tax Type</label>
+                            <select class="form-control" id="taxType" name="taxType">
+                                <option value="percentage">Percentage</option>
+                                <option value="fixed">Fixed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="tax" class="form-label">Tax Amount</label>
+                            <input type="number" class="form-control" id="tax" name="tax" placeholder="Enter tax amount">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Subcategory</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Subcategories Grid -->
+        <div class="row">
+            <% if (subcategories && subcategories.length > 0) { %>
+                <% subcategories.forEach(subcategory => { %>
+                    <div class="col-md-4" id="subcategory-<%= subcategory._id %>">
+                        <div class="subcategory-card">
+                            <div class="subcategory-img-wrapper">
+                                <img src="<%= subcategory.image %>" class="subcategory-img" alt="<%= subcategory.name %>">
+                            </div>
+                            <div class="subcategory-body">
+                                <h5 class="subcategory-title"><%= subcategory.name %></h5>
+                                <p class="subcategory-description"><%= subcategory.description %></p>
+                                <p><strong>Tax: </strong> <%= subcategory.taxApplicability ? (subcategory.taxType === "percentage" ? subcategory.tax + "%" : "₹" + subcategory.tax) : "Not Applicable" %></p>
+                                <div class="subcategory-actions">
+                                    <a href="/api/v1/subcategories/<%= subcategory._id %>/items" class="btn btn-view">View Items</a>
+                                    <a href="/api/v1/subcategories/<%= subcategory._id %>/edit" class="btn btn-warning">Edit</a>
+                                    <button class="btn btn-danger" onclick="deleteSubcategory('<%= subcategory._id %>')">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="col-12">
+                    <p class="text-center text-muted">No subcategories available.</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script>
+        async function deleteSubcategory(subcategoryId) {
+            if (!confirm("Are you sure you want to delete this subcategory?")) {
+                return;
+            }
+        
+            try {
+                const response = await fetch(`/api/v1/subcategories/${subcategoryId}?_method=DELETE`, {
+                    method: "POST",
+                });
+        
+                const result = await response.json();
+        
+                if (response.ok) {
+                    toastr.success(result.message, "Success");
+        
+                    // ✅ Remove the deleted subcategory from the page **without refreshing**
+                    const subcategoryElement = document.getElementById(`subcategory-${subcategoryId}`);
+                    if (subcategoryElement) {
+                        subcategoryElement.remove();
+                    }
+                } else {
+                    toastr.error(result.message, "Error");
+                }
+            } catch (error) {
+                toastr.error("Something went wrong!", "Error");
+            }
+        }
+    </script>              
+</body>
+</html>

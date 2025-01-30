@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Categories</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        :root {
+            --primary-color: #475569;
+            --hover-color: #334155;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --background-light: #f8fafc;
+            --card-shadow: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            background-color: var(--background-light);
+        }
+
+        /* Custom styles for cards */
+        .category-card {
+            height: 450px;
+            transition: all 0.2s ease;
+            margin-bottom: 2rem;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px var(--card-shadow);
+        }
+
+        .category-img-wrapper {
+            height: 200px;
+            overflow: hidden;
+            background-color: var(--background-light);
+        }
+
+        .category-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .category-card:hover .category-img {
+            transform: scale(1.05);
+        }
+
+        .category-body {
+            padding: 1.25rem;
+            height: calc(450px - 200px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .category-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .category-description {
+            flex-grow: 1;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            margin-bottom: 1rem;
+        }
+
+        .category-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: auto;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-view, .btn-edit, .btn-delete {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-view:hover, .btn-edit:hover, .btn-delete:hover {
+            background-color: var(--hover-color);
+            border-color: var(--hover-color);
+            color: white;
+        }
+
+        /* Form styling */
+        .create-form {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px var(--card-shadow);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-header {
+            background-color: var(--background-light);
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .form-header h2 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+        }
+
+        .form-control {
+            border-color: var(--border-color);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(71, 85, 105, 0.25);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--hover-color);
+            border-color: var(--hover-color);
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Categories</h1>
+
+        <!-- Create Category Form -->
+        <div class="create-form">
+            <div class="form-header">
+                <h2>Create New Category</h2>
+            </div>
+            <div class="card-body">
+                <% if (typeof errors !== 'undefined' && errors.length > 0) { %>
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            <% errors.forEach(error => { %>
+                                <li><%= error.msg %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                <% } %>
+
+                <form action="/api/v1/categories" method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category Name</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Image URL</label>
+                            <input type="url" name="image" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tax Applicability</label>
+                            <select name="taxApplicability" class="form-control">
+                                <option value="true">Applicable</option>
+                                <option value="false">Not Applicable</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tax Type</label>
+                            <select name="taxType" class="form-control">
+                                <option value="percentage">Percentage</option>
+                                <option value="fixed">Fixed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tax Amount</label>
+                            <input type="number" name="tax" class="form-control">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Category</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Categories Grid -->
+        <div class="row">
+            <% if (categories && categories.length > 0) { %>
+                <% categories.forEach(category => { %>
+                    <div class="col-md-4">
+                        <div class="category-card">
+                            <div class="category-img-wrapper">
+                                <img src="<%= category.image %>" class="category-img" alt="<%= category.name %>">
+                            </div>
+                            <div class="category-body">
+                                <h5 class="category-title"><%= category.name %></h5>
+                                <p class="category-description"><%= category.description %></p>
+                                <div class="category-actions">
+                                    <a href="/api/v1/categories/<%= category._id %>/subcategories" class="btn btn-view">View Subcategories</a>
+                                    <a href="/api/v1/categories/<%= category._id %>/edit" class="btn btn-warning">Edit</a>
+                                    <button type="button" class="btn btn-danger" onclick="deleteCategory('<%= category._id %>')">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="col-12">
+                    <p class="text-center text-muted">No categories available.</p>
+                </div>
+            <% } %>
+        </div>
+        
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+</body>
+</html>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.querySelector("form[action='/api/v1/categories']");
+
+    if (form) {
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => { data[key] = value });
+
+            try {
+                const response = await fetch("/api/v1/categories", {
+                    method: "POST",
+                    body: JSON.stringify(data),
+                    headers: { "Content-Type": "application/json" }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // ✅ Show success notification
+                    toastr.success(`Category "${result.category.name}" created successfully!`, "Success");
+
+                    // ✅ Add new category to the page
+                    addCategoryToPage(result.category);
+
+                    // ✅ Clear the form fields
+                    form.reset();
+                } else {
+                    toastr.error(result.message || "Something went wrong", "Error");
+                }
+            } catch (error) {
+                console.error("❌ Error creating category:", error);
+                toastr.error("Something went wrong!", "Error");
+            }
+        });
+    }
+});
+
+// ✅ Function to Add New Category to the Page
+function addCategoryToPage(category) {
+    const categoryContainer = document.querySelector(".row");
+
+    const categoryHTML = `
+        <div class="col-md-4" id="category-${category._id}">
+            <div class="category-card">
+                <div class="category-img-wrapper">
+                    <img src="${category.image}" class="category-img" alt="${category.name}">
+                </div>
+                <div class="category-body">
+                    <h5 class="category-title">${category.name}</h5>
+                    <p class="category-description">${category.description}</p>
+                    <div class="category-actions">
+                        <a href="/api/v1/categories/${category._id}/subcategories" class="btn btn-view">View Subcategories</a>
+                        <a href="/api/v1/categories/${category._id}/edit" class="btn btn-warning">Edit</a>
+                        <button type="button" class="btn btn-danger" onclick="deleteCategory('${category._id}')">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    categoryContainer.insertAdjacentHTML("beforeend", categoryHTML);
+}
+// ✅ Function to Handle Deletion (For Reference)
+async function deleteCategory(categoryId) {
+    if (!confirm("Are you sure you want to delete this category?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/v1/categories/${categoryId}`, { method: "DELETE" });
+        const result = await response.json();
+
+        if (result.success) {
+            toastr.success(result.message, "Success");
+            document.getElementById(`category-${categoryId}`).remove();
+        } else {
+            toastr.error(result.message, "Error");
+        }
+    } catch (error) {
+        console.error("❌ Error deleting category:", error);
+        toastr.error("Something went wrong!", "Error");
+    }
+}
+</script>

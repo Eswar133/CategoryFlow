@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= item ? item.name : "Items" %></title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+
+    <div class="container mt-4">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/api/v1/categories">Categories</a></li>
+                <% if (category) { %>
+                    <li class="breadcrumb-item"><a href="/api/v1/categories/<%= category._id %>/subcategories"><%= category.name %></a></li>
+                <% } %>
+                <% if (subCategory) { %>
+                    <li class="breadcrumb-item"><a href="/api/v1/subcategories/<%= subCategory._id %>/items"><%= subCategory.name %></a></li>
+                <% } %>
+                <% if (item) { %>
+                    <li class="breadcrumb-item active" aria-current="page"><%= item.name %></li>
+                <% } else { %>
+                    <li class="breadcrumb-item active" aria-current="page">Items</li>
+                <% } %>
+            </ol>
+        </nav>
+
+        <% if (error) { %>
+            <div class="alert alert-danger"><%= error %></div>
+        <% } %>
+
+        <% if (!item) { %>
+        <!-- Display all items under subcategory -->
+        <h2 class="text-center">Items under <%= subCategory ? subCategory.name : "this category" %></h2>
+
+        <!-- 📝 Add New Item Form -->
+        <div class="card p-4 mb-4">
+            <h4>Add New Item</h4>
+            <form action="/api/v1/items" method="POST">
+                <input type="hidden" name="categoryId" value="<%= category ? category._id : '' %>">
+                <input type="hidden" name="subCategoryId" value="<%= subCategory ? subCategory._id : '' %>">
+                
+                <div class="mb-3">
+                    <label class="form-label">Item Name</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Image URL</label>
+                    <input type="url" name="image" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" required></textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Base Amount</label>
+                        <input type="number" name="baseAmount" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Discount</label>
+                        <input type="number" name="discount" class="form-control">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Tax Applicability</label>
+                        <select name="taxApplicability" class="form-control">
+                            <option value="true">Applicable</option>
+                            <option value="false">Not Applicable</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Tax Type</label>
+                        <select name="taxType" class="form-control">
+                            <option value="percentage">Percentage</option>
+                            <option value="fixed">Fixed</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Tax Amount</label>
+                        <input type="number" name="tax" class="form-control">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Create Item</button>
+            </form>
+        </div>
+
+        <div class="row">
+            <% if (items.length === 0) { %>
+                <p class="text-center text-muted">No items available.</p>
+            <% } else { %>
+                <% items.forEach(item => { %>
+                    <div class="col-md-4">
+                        <div class="card item-card">
+                            <div class="item-img-wrapper">
+                                <img src="<%= item.image %>" class="item-img" alt="<%= item.name %>">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title"><%= item.name %></h5>
+                                <p class="card-text"><%= item.description %></p>
+                                <a href="/api/v1/items/<%= item._id %>" class="btn btn-primary">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } %>
+        </div>
+        <% } else { %>
+        <!-- Individual Item Details -->
+        <div class="card item-card">
+            <div class="item-img-wrapper">
+                <img src="<%= item.image %>" class="item-img" alt="<%= item.name %>">
+            </div>
+            <div class="card-body">
+                <h2 class="text-center"><%= item.name %></h2>
+                <p class="lead"><%= item.description %></p>
+
+                <h3>Pricing Details</h3>
+                <ul class="list-group">
+                    <li class="list-group-item"><strong>Base Amount:</strong> ₹<%= item.baseAmount %></li>
+                    <li class="list-group-item"><strong>Discount:</strong> -₹<%= item.discount %></li>
+                    <% if (item.taxApplicability) { %>
+                        <li class="list-group-item">
+                            <strong>Tax:</strong>
+                            <% if (item.taxType === 'percentage') { %>
+                                <%= item.tax %>% (₹<%= (item.tax / 100) * item.baseAmount %> )
+                            <% } else { %>
+                                ₹<%= item.tax %>
+                            <% } %>
+                        </li>
+                    <% } else { %>
+                        <li class="list-group-item"><strong>Tax:</strong> Not applicable</li>
+                    <% } %>
+                    <li class="list-group-item"><strong>Total Price:</strong> ₹<%= item.totalAmount %></li>
+                </ul>
+
+                <a href="/api/v1/subcategories/<%= subCategory ? subCategory._id : category._id %>/items" class="btn btn-secondary mt-4">Back</a>
+            </div>
+        </div>
+        <% } %>
+    </div>
+
+</body>
+</html>
