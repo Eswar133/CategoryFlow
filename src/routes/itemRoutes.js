@@ -1,128 +1,249 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require('mongoose');
 const Item = require('../models/Item');
 const Category = require('../models/Category');
 const SubCategory = require('../models/SubCategory');
 const { body, validationResult } = require('express-validator');
 const methodOverride = require('method-override');
 
-const { createItem, getAllItems,  deleteItem, searchItems } = require("../controllers/itemController");
+router.use(methodOverride('_method')); // Enable PUT and DELETE support in forms
 
-router.use(methodOverride('_method')); // Enable PUT support in forms
-
-// ✅ Create an item
-router.post("/", createItem);
-
-// ✅ Get all items
-router.get("/", getAllItems);
-
-router.get("/subcategory/:subCategoryId", async (req, res) => {
+/**
+ * @desc Create an item under a subcategory or category
+ * @route POST /items
+ */
+router.post("/", async (req, res) => {
     try {
-        const subCategory = await SubCategory.findById(req.params.subCategoryId);
-        if (!subCategory) {
-            return res.status(404).render("items", { items: [], subCategory: null, category: null, error: "Subcategory not found" });
+        const { name, image, description, baseAmount, discount, taxApplicability, tax, taxType, categoryId, subCategoryId } = req.body;
+
+        if (!categoryId && !subCategoryId) {
+            return res.status(400).json({ message: "Item must be assigned to either a category or a subcategory" });
         }
 
-        const category = await Category.findById(subCategory.category);
-        const items = await Item.find({ subCategory: subCategory._id });
+        let parentTaxApplicability = false, parentTax = 0, parentTaxType = null;
 
-        res.render("items", { items, subCategory, category, item: null, error: null });
+        if (subCategoryId) {
+            const subCategory = await SubCategory.findById(subCategoryId);
+            if (!subCategory) {
+                return res.status(404).json({ message: "Subcategory not found" });
+            }
+            parentTaxApplicability = subCategory.taxApplicability;
+            parentTax = subCategory.tax;
+            parentTaxType = subCategory.taxType;
+        } else if (categoryId) {
+            const category = await Category.findById(categoryId);
+            if (!category) {
+                return res.status(404).json({ message: "Category not found" });
+            }
+            parentTaxApplicability = category.taxApplicability;
+            parentTax = category.tax;
+            parentTaxType = category.taxType;
+        }
+
+        const finalTaxApplicability = taxApplicability !== undefined ? taxApplicability === 'true' : parentTaxApplicability;
+        const finalTax = finalTaxApplicability ? (tax !== undefined ? parseFloat(tax) : parentTax) : 0;
+        const finalTaxType = finalTaxApplicability ? (taxType !== undefined ? taxType : parentTaxType) : null;
+
+        let taxAmount = 0;
+        if (finalTaxApplicability) {
+            taxAmount = finalTaxType === "percentage" ? (finalTax / 100) * baseAmount : finalTax;
+        }
+        const totalAmount = parseFloat(baseAmount) - (parseFloat(discount) || 0) + taxAmount;
+
+        const newItem = new Item({
+            name,
+            image,
+            description,
+            baseAmount,
+            discount: discount || 0,
+            taxApplicability: finalTaxApplicability,
+            tax: finalTax,
+            taxType: finalTaxType,
+            totalAmount,
+            category: categoryId || null,
+            subCategory: subCategoryId || null
+        });
+
+        await newItem.save();
+        res.status(201).json({ message: "Item created successfully", item: newItem });
 
     } catch (error) {
-        res.status(500).render("items", { items: [], subCategory: null, category: null, item: null, error: "Server error while fetching items." });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 });
 
-
-// ✅ Get a single item details
-router.get("/:id", async (req, res) => {
+/**
+ * @desc Get all items with filtering & pagination
+ * @route GET /items
+ */
+router.get("/", async (req, res) => {
     try {
-        const item = await Item.findById(req.params.id);
-        if (!item) {
-            return res.status(404).render("items", { item: null, items: [], category: null, subCategory: null, error: "Item not found" });
+        let { page, limit, categoryId, subCategoryId, taxApplicability, minPrice, maxPrice, search } = req.query;
+
+        page = parseInt(page) || 1;
+        limit = parseInt(limit) || 10;
+        const skip = (page - 1) * limit;
+
+        let filter = {};
+        if (categoryId) filter.category = categoryId;
+        if (subCategoryId) filter.subCategory = subCategoryId;
+        if (taxApplicability !== undefined) filter.taxApplicability = taxApplicability === 'true';
+        if (minPrice) filter.totalAmount = { $gte: parseFloat(minPrice) };
+        if (maxPrice) filter.totalAmount = { ...filter.totalAmount, $lte: parseFloat(maxPrice) };
+        if (search) filter.name = { $regex: search, $options: "i" };
+
+        const items = await Item.find(filter)
+            .skip(skip)
+            .limit(limit)
+            .populate('category', 'name')
+            .populate('subCategory', 'name');
+
+        const totalItems = await Item.countDocuments(filter);
+
+        if (items.length === 0) {
+            return res.status(404).json({ message: "No items found" });
         }
 
-        const category = await Category.findById(item.category);
-        const subCategory = item.subCategory ? await SubCategory.findById(item.subCategory) : null;
-
-        res.render("items", { item, items: [], category, subCategory, error: null });
+        res.status(200).json({
+            message: "Items fetched successfully",
+            data: items,
+            pagination: {
+                total: totalItems,
+                page,
+                limit,
+                totalPages: Math.ceil(totalItems / limit)
+            }
+        });
 
     } catch (error) {
-        res.status(500).render("items", { item: null, items: [], category: null, subCategory: null, error: "Server Error" });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 });
 
-
-// ✅ Render Edit Item Page (Newly Added)
-router.get('/:id/edit', async (req, res) => {
+/**
+ * @desc Render the Edit Item Page
+ * @route GET /items/:id/edit
+ */
+router.get("/:id/edit", async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
         if (!item) {
             return res.status(404).send("Item not found");
         }
 
-        const category = await Category.findById(item.category);
-        let subCategory = null;
-        if (item.subCategory) {
-            subCategory = await SubCategory.findById(item.subCategory);
-        }
+        const category = item.category ? await Category.findById(item.category) : null;
+        const subCategory = item.subCategory ? await SubCategory.findById(item.subCategory) : null;
 
-        res.render('editItem', { item, category, subCategory, errors: [], message: null });
+        res.render("editItem", { item, category, subCategory, error: null });
 
     } catch (error) {
+        console.error("❌ Error fetching item for edit:", error);
         res.status(500).send("Server Error");
     }
 });
 
-// ✅ Update Item (Ensures Validation)
-router.put('/:id', [
-    body('name').notEmpty().withMessage('Item name is required'),
-    body('image').isURL().withMessage('Valid image URL is required'),
-    body('baseAmount').isFloat({ min: 0 }).withMessage('Base amount must be a positive number'),
-    body('discount').optional().isFloat({ min: 0 }).withMessage('Discount must be a positive number'),
-    body('tax').optional().isFloat({ min: 0, max: 100 }).withMessage('Tax must be between 0 and 100'),
-], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        const item = await Item.findById(req.params.id);
-        const category = await Category.findById(item.category);
-        let subCategory = null;
-        if (item.subCategory) {
-            subCategory = await SubCategory.findById(item.subCategory);
-        }
-        return res.render('editItem', { item, category, subCategory, errors: errors.array(), message: null });
-    }
-
+router.get("/:id", async (req, res) => {
     try {
-        const { name, image, description, baseAmount, discount, taxApplicability, tax, taxType, overrideTax } = req.body;
-
         const item = await Item.findById(req.params.id);
+        if (!item) {
+            return res.status(404).send("Item not found");
+        }
+
+        const category = item.category ? await Category.findById(item.category) : null;
+        const subCategory = item.subCategory ? await SubCategory.findById(item.subCategory) : null;
+
+        res.render("items", { item, category, subCategory, items: [], error: null });
+
+    } catch (error) {
+        console.error("❌ Error fetching item:", error);
+        res.status(500).send("Server Error");
+    }
+});
+
+/**
+ * @desc Update an item
+ * @route PUT /items/:id
+ */
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, image, description, baseAmount, discount, taxApplicability, tax, taxType, categoryId, subCategoryId } = req.body;
+
+        let parentTaxApplicability = false, parentTax = 0, parentTaxType = null;
+
+        if (subCategoryId) {
+            const subCategory = await SubCategory.findById(subCategoryId);
+            if (!subCategory) {
+                return res.status(404).json({ message: "Subcategory not found" });
+            }
+            parentTaxApplicability = subCategory.taxApplicability;
+            parentTax = subCategory.tax;
+            parentTaxType = subCategory.taxType;
+        } else if (categoryId) {
+            const category = await Category.findById(categoryId);
+            if (!category) {
+                return res.status(404).json({ message: "Category not found" });
+            }
+            parentTaxApplicability = category.taxApplicability;
+            parentTax = category.tax;
+            parentTaxType = category.taxType;
+        }
+
+        const finalTaxApplicability = taxApplicability !== undefined ? taxApplicability : parentTaxApplicability;
+        const finalTax = finalTaxApplicability ? (tax !== undefined ? tax : parentTax) : 0;
+        const finalTaxType = finalTaxApplicability ? (taxType !== undefined ? taxType : parentTaxType) : null;
+
+        const totalAmount = parseFloat(baseAmount) - (parseFloat(discount) || 0) + (finalTaxType === "percentage" ? (finalTax / 100) * baseAmount : finalTax);
+
+        const updatedItem = await Item.findByIdAndUpdate(
+            id,
+            {
+                name,
+                image,
+                description,
+                baseAmount,
+                discount,
+                taxApplicability: finalTaxApplicability,
+                tax: finalTax,
+                taxType: finalTaxType,
+                totalAmount,
+                category: categoryId || null,
+                subCategory: subCategoryId || null
+            },
+            { new: true }
+        );
+
+        if (!updatedItem) {
+            return res.status(404).json({ message: "Item not found" });
+        }
+
+        res.status(200).json({ message: "Item updated successfully", item: updatedItem });
+
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+/**
+ * @desc Delete an item
+ * @route DELETE /items/:id
+ */
+router.delete("/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const item = await Item.findById(id);
         if (!item) {
             return res.status(404).json({ message: "Item not found" });
         }
 
-        const updatedItem = {
-            name,
-            image,
-            description,
-            baseAmount: parseFloat(baseAmount),
-            discount: parseFloat(discount) || 0,
-            taxApplicability: overrideTax === "true",
-            tax: overrideTax === "true" ? parseFloat(tax) : item.tax,
-            taxType: overrideTax === "true" ? taxType : item.taxType,
-            totalAmount: parseFloat(baseAmount) - (parseFloat(discount) || 0) + (overrideTax === "true" ? parseFloat(tax) : item.tax),
-        };
+        await Item.findByIdAndDelete(id);
 
-        await Item.findByIdAndUpdate(req.params.id, updatedItem);
-
-        res.redirect(`/items/${item._id}`);
+        res.status(200).json({ message: "Item deleted successfully" });
 
     } catch (error) {
-        res.status(500).json({ message: "Server Error", error: error.message });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 });
-
-// ✅ Delete an item
-router.delete("/:id", deleteItem);
 
 module.exports = router;

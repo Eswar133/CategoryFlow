@@ -37,10 +37,17 @@ try {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ✅ Home Route -> Redirect to Categories Page
+app.get("/", async (req, res) => {
+    try {
+        const Category = require("./models/Category");
 
-// ✅ Home Route (For Rendering Index Page)
-app.get("/", (req, res) => {
-    res.render("index", { message: "Welcome to the Menu Management System!" });
+        const categories = await Category.find();
+        res.render("categories", { categories });
+    } catch (error) {
+        console.error("❌ Error loading categories:", error);
+        res.status(500).send("Server Error");
+    }
 });
 
 // ✅ Global Error Handler

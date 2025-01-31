@@ -1,246 +1,265 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
+const { body, validationResult } = require('express-validator');
+const methodOverride = require('method-override');
 const Category = require('../models/Category');
 const SubCategory = require('../models/SubCategory');
 const Item = require('../models/Item');
-const { body, validationResult } = require('express-validator');
-const methodOverride = require('method-override');
 
-const { createCategory, getAllCategories, updateCategory, deleteCategory } = require('../controllers/categoryController');
+router.use(methodOverride('_method')); // Enable PUT/DELETE in forms
 
-router.use(methodOverride('_method')); // Enable PUT support in forms
-
-// ✅ Create a new category
-router.post('/:categoryId/subcategories', async (req, res) => {
-    try {
-        const { categoryId } = req.params;
-        const { name, image, description, taxApplicability, tax, taxType } = req.body;
-
-        // Ensure the category exists
-        const category = await Category.findById(categoryId);
-        if (!category) {
-            return res.status(404).render('subcategories', {
-                category: null,
-                subcategories: [],
-                errors: [{ msg: 'Category not found' }],
-            });
-        }
-
-        // Check if the subcategory already exists
-        const existingSubCategory = await SubCategory.findOne({ name, category: categoryId });
-        if (existingSubCategory) {
-            const subcategories = await SubCategory.find({ category: categoryId });
-            return res.render('subcategories', {
-                category,
-                subcategories,
-                errors: [{ msg: 'Subcategory name already exists' }],
-            });
-        }
-
-        // Create a new subcategory
-        const newSubCategory = new SubCategory({
-            name,
-            image,
-            description,
-            category: categoryId,
-            taxApplicability,
-            tax,
-            taxType,
-        });
-
-        await newSubCategory.save();
-        res.redirect(`/api/v1/categories/${categoryId}/subcategories`);
-    } catch (error) {
-        console.error('Error creating subcategory:', error);
-        res.status(500).render('subcategories', {
-            category: null,
-            subcategories: [],
-            errors: [{ msg: 'Server error while creating subcategory' }],
-        });
-    }
-});
-
-
-// ✅ Get all categories with pagination
+// 🏠 Categories Homepage
 router.get('/', async (req, res) => {
-    try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const skip = (page - 1) * limit;
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 10);
+    const skip = (page - 1) * limit;
 
-        // Retrieve categories with pagination
-        const categories = await Category.find()
-            .skip(skip)
-            .limit(limit);
+    const categories = await Category.find()
+      .skip(skip)
+      .limit(limit)
+      .populate('subCategories', 'name image description');
 
-        const totalCategories = await Category.countDocuments();
+    const totalCategories = await Category.countDocuments();
 
-        res.render('categories', {
-            categories,
-            pagination: {
-                currentPage: page,
-                totalPages: Math.ceil(totalCategories / limit),
-                hasNext: page * limit < totalCategories,
-                hasPrev: page > 1
-            },
-            errors: []
-        });
-    } catch (error) {
-        res.status(500).send("Server Error");
-    }
+    res.render('categories', {
+      categories,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCategories / limit),
+        hasNext: page * limit < totalCategories,
+        hasPrev: page > 1
+      },
+      errors: []
+    });
+  } catch (error) {
+    res.status(500).send("Server Error");
+  }
 });
 
-// ✅ Get a single category and render its page
-router.get('/:id', async (req, res) => {
-    try {
-        const category = await Category.findById(req.params.id);
-        if (!category) {
-            return res.status(404).send("Category not found");
-        }
-
-        const subcategories = await SubCategory.find({ category: category._id });
-        const items = await Item.find({ category: category._id });
-
-        // ✅ Use 'category.ejs' instead of 'categories.ejs'
-        res.render('category', { category, subcategories, items });
-    } catch (error) {
-        console.error("Error fetching category:", error);
-        res.status(500).send("Server Error");
-    }
+// 📝 Create Category Form
+router.get('/new', (req, res) => {
+  res.render('newCategory', { errors: [], category: null });
 });
 
-// ✅ Render Edit Category Page
-router.get('/:id/edit', async (req, res) => {
-    try {
-        const category = await Category.findById(req.params.id);
-        if (!category) {
-            return res.status(404).send("Category not found");
-        }
-        res.render('editCategory', { category, errors: [], message: null });
-    } catch (error) {
-        res.status(500).redirect('/');
-    }
-});
-
-// ✅ Update Category (PUT)
-router.put('/:id', [
-    body('name').notEmpty().withMessage('Category name is required'),
-    body('image').isURL().withMessage('Valid image URL is required'),
-    body('tax')
-        .optional()
-        .isFloat({ min: 0, max: 100 })
-        .withMessage('Tax percentage must be between 0 and 100')
+// ✅ Create Category
+router.post('/', [
+  body('name').notEmpty().withMessage('Name is required'),
+  body('image').isURL().withMessage('Valid image URL is required'),
+  body('taxApplicability').notEmpty().withMessage('Tax Applicability is required'),
+  body('tax').optional().isFloat({ min: 0, max: 100 }).withMessage('Tax must be between 0-100')
 ], async (req, res) => {
-    const errors = validationResult(req);
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.render('newCategory', { 
+      errors: errors.array(), 
+      category: null 
+    });
+  }
 
-    try {
-        const category = await Category.findById(req.params.id);
-        if (!category) {
-            return res.status(404).send("Category not found");
-        }
+  try {
+    const { name, image, description, taxApplicability, tax, taxType } = req.body;
+    const isTaxApplicable = taxApplicability === "true";
 
-        if (!errors.isEmpty()) {
-            return res.render('editCategory', { category, errors: errors.array(), message: null });
-        }
+    const newCategory = new Category({
+      name,
+      image,
+      description,
+      taxApplicability: isTaxApplicable,
+      tax: isTaxApplicable ? parseFloat(tax) : 0,
+      taxType: isTaxApplicable ? taxType : null,
+    });
 
-        const { name, image, description, taxApplicability, tax, taxType } = req.body;
-
-        const taxChanged = (
-            category.taxApplicability !== taxApplicability ||
-            category.tax !== tax ||
-            category.taxType !== taxType
-        );
-
-        // ✅ Update category details
-        category.name = name;
-        category.image = image;
-        category.description = description;
-        category.taxApplicability = taxApplicability === "true"; // Ensure boolean conversion
-        category.tax = tax ? parseFloat(tax) : 0;
-        category.taxType = taxType;
-
-        await category.save();
-
-        // ✅ If tax settings changed, update subcategories & items that inherit tax
-        if (taxChanged) {
-            await SubCategory.updateMany(
-                { category: category._id, taxApplicability: true },
-                { tax: category.tax, taxType: category.taxType }
-            );
-
-            await Item.updateMany(
-                { category: category._id, taxApplicability: true },
-                { tax: category.tax, taxType: category.taxType }
-            );
-        }
-
-        console.log("✅ Category updated successfully");
-
-        // ✅ Redirect after successful update (Fixing multiple response issue)
-        return res.redirect('/api/v1/categories');
-
-    } catch (error) {
-        console.error("❌ Error updating category:", error);
-        return res.status(500).send("Server Error");
-    }
+    await newCategory.save();
+    res.redirect(`/api/v1/categories/${newCategory._id}`);
+  } catch (error) {
+    res.status(500).render('newCategory', {
+      errors: [{ msg: 'Server error: ' + error.message }],
+      category: null
+    });
+  }
 });
 
-// ✅ Delete a category
-router.delete('/:id', async (req, res) => {
+// 👀 View Single Category
+router.get('/:id', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) return res.status(404).send("Category not found");
+
+    const [subcategories, items] = await Promise.all([
+      SubCategory.find({ category: category._id }),
+      Item.find({ category: category._id })
+    ]);
+
+    res.render('category', { category, subcategories, items });
+  } catch (error) {
+    res.status(500).send("Server Error");
+  }
+});
+
+// ✏️ Edit Category Form
+router.get('/:id/edit', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) return res.status(404).send("Category not found");
+    res.render('editCategory', { category, errors: [], message: null });
+  } catch (error) {
+    res.status(500).redirect('/api/v1/categories');
+  }
+});
+
+// ✅ Update Category
+router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        const { name, image, description, taxApplicability, tax, taxType } = req.body;
 
-        // Check if the category exists
-        const category = await Category.findById(id);
-        if (!category) {
-            return res.status(404).json({ success: false, message: "Category not found" });
+        const updatedCategory = await Category.findByIdAndUpdate(
+            id,
+            {
+                name,
+                image,
+                description,
+                taxApplicability: taxApplicability === 'true',
+                tax: taxApplicability === 'true' ? parseFloat(tax) : 0,
+                taxType: taxApplicability === 'true' ? taxType : null
+            },
+            { new: true }
+        );
+
+        if (!updatedCategory) {
+            return res.status(404).json({ message: "Category not found" });
         }
 
-        // Check if items exist under this category
-        const itemsUnderCategory = await Item.find({ category: id });
-        if (itemsUnderCategory.length > 0) {
-            return res.status(400).json({ success: false, message: "Cannot delete. Items exist under this category." });
-        }
+        // ✅ Update all subcategories that inherit from category
+        await SubCategory.updateMany(
+            { category: id, taxApplicability: true },
+            { tax: updatedCategory.tax, taxType: updatedCategory.taxType }
+        );
 
-        // Delete the category
-        await Category.findByIdAndDelete(id);
+        // ✅ Update all items that inherit from category or subcategories
+        await Item.updateMany(
+            { category: id, taxApplicability: true },
+            { tax: updatedCategory.tax, taxType: updatedCategory.taxType }
+        );
 
-        res.json({ success: true, message: "Category deleted successfully!" });
+        res.json({ message: "Category updated successfully", category: updatedCategory });
 
     } catch (error) {
-        console.error("❌ Error deleting category:", error);
-        res.status(500).json({ success: false, message: "Server error. Try again!" });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 });
 
-// ✅ Get subcategories for a specific category
-router.get('/:id/subcategories', async (req, res) => {
-    try {
-        const category = await Category.findById(req.params.id);
-        if (!category) {
-            return res.status(404).render('subcategories', {
-                category: null,
-                subcategories: [],
-                errors: [{ msg: "Category not found" }]
-            });
-        }
 
-        const subcategories = await SubCategory.find({ category: category._id });
+// 🗑️ Delete Category
+router.delete('/:id', async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-        // Add errors: [] here 👇
-        res.render('subcategories', {
-            category,
-            subcategories,
-            errors: []  // This fixes the undefined issue
-        });
-
-    } catch (error) {
-        console.error("Error fetching subcategories:", error);
-        res.status(500).render('subcategories', {
-            errors: [{ msg: "Server error" }]
-        });
+  try {
+    const category = await Category.findById(req.params.id).session(session);
+    if (!category) {
+      return res.status(404).json({ success: false, message: "Category not found" });
     }
+
+    const itemsExist = await Item.exists({ category: category._id }).session(session);
+    if (itemsExist) {
+      throw new Error("Cannot delete category with existing items");
+    }
+
+    const subcategories = await SubCategory.find({ category: category._id }).session(session);
+    for (const subcategory of subcategories) {
+      const subcategoryItems = await Item.exists({ subCategory: subcategory._id }).session(session);
+      if (subcategoryItems) {
+        throw new Error(`Cannot delete - items exist in subcategory: ${subcategory.name}`);
+      }
+      await SubCategory.findByIdAndDelete(subcategory._id).session(session);
+    }
+
+    await Category.findByIdAndDelete(category._id).session(session);
+    await session.commitTransaction();
+    
+    res.json({ success: true, message: "Category deleted successfully!" });
+  } catch (error) {
+    await session.abortTransaction();
+    res.status(400).json({ 
+      success: false, 
+      message: error.message || "Server error during deletion"
+    });
+  } finally {
+    session.endSession();
+  }
 });
 
+// ➕ Subcategory Routes
+
+// 🆕 Create Subcategory Form
+router.get('/:categoryId/subcategories/new', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.categoryId);
+    if (!category) return res.status(404).send("Parent category not found");
+    res.render('newSubcategory', { category, errors: [] });
+  } catch (error) {
+    res.status(500).redirect('/api/v1/categories');
+  }
+});
+
+// ✅ Create Subcategory
+router.post('/:categoryId/subcategories', [
+  body('name').notEmpty().withMessage('Subcategory name is required'),
+  body('image').isURL().withMessage('Valid image URL is required')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const category = await Category.findById(req.params.categoryId);
+    return res.render('newSubcategory', {
+      category,
+      errors: errors.array()
+    });
+  }
+
+  try {
+    const { name, image, description, taxApplicability, tax, taxType } = req.body;
+    const category = await Category.findById(req.params.categoryId);
+
+    const newSub = new SubCategory({
+      name,
+      image,
+      description,
+      category: category._id,
+      taxApplicability: taxApplicability === "true",
+      tax: taxApplicability === "true" ? parseFloat(tax) : 0,
+      taxType: taxApplicability === "true" ? taxType : null
+    });
+
+    await newSub.save();
+    res.redirect(`/api/v1/categories/${category._id}/subcategories`);
+  } catch (error) {
+    res.status(500).render('newSubcategory', {
+      errors: [{ msg: 'Server error: ' + error.message }],
+      category: null
+    });
+  }
+});
+
+// 👀 View Subcategories
+router.get('/:categoryId/subcategories', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.categoryId);
+    if (!category) return res.status(404).send("Parent category not found");
+
+    const subcategories = await SubCategory.find({ category: category._id });
+    res.render('subcategories', {
+      category,
+      subcategories,
+      errors: []
+    });
+  } catch (error) {
+    res.status(500).render('subcategories', {
+      errors: [{ msg: "Server error fetching subcategories" }]
+    });
+  }
+});
 
 module.exports = router;

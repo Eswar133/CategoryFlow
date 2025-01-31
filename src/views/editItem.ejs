@@ -3,149 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Item</title>
+    <title>Edit Item - <%= item.name %></title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <script>
-        function updateTotalAmount() {
-            let baseAmount = parseFloat(document.getElementById("baseAmount").value) || 0;
-            let discount = parseFloat(document.getElementById("discount").value) || 0;
-            let tax = parseFloat(document.getElementById("tax").value) || 0;
-
-            let totalAmount = baseAmount - discount + tax;
-            document.getElementById("totalAmount").value = totalAmount.toFixed(2);
-        }
-
-        function toggleTaxFields() {
-            let overrideTax = document.getElementById("overrideTax").checked;
-            let taxFields = document.getElementById("taxFields");
-            taxFields.style.display = overrideTax ? "block" : "none";
-            document.getElementById("tax").disabled = !overrideTax;
-            document.getElementById("taxType").disabled = !overrideTax;
-        }
-
-        function submitForm(event) {
-            event.preventDefault();
-            document.getElementById("loader").style.display = "block";
-            document.getElementById("submitButton").disabled = true;
-
-            let formData = new FormData(document.getElementById("editItemForm"));
-            let jsonData = {};
-            formData.forEach((value, key) => jsonData[key] = value);
-
-            fetch(`/items/${jsonData.itemId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(jsonData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("loader").style.display = "none";
-                document.getElementById("submitButton").disabled = false;
-
-                if (data.error) {
-                    document.getElementById("errorAlert").innerText = data.error;
-                    document.getElementById("errorAlert").style.display = "block";
-                } else {
-                    alert("Item updated successfully!");
-                    window.location.href = `/items/${jsonData.itemId}`;
-                }
-            })
-            .catch(error => {
-                document.getElementById("loader").style.display = "none";
-                document.getElementById("submitButton").disabled = false;
-                alert("An error occurred while updating the item.");
-            });
-        }
-    </script>
 </head>
-<body>
+<body class="bg-light">
 
     <div class="container mt-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/api/v1/categories">Categories</a></li>
+                <% if (category) { %>
+                    <li class="breadcrumb-item"><a href="/api/v1/categories/<%= category._id %>/subcategories"><%= category.name %></a></li>
+                <% } %>
+                <% if (subCategory) { %>
+                    <li class="breadcrumb-item"><a href="/api/v1/subcategories/<%= subCategory._id %>/items"><%= subCategory.name %></a></li>
+                <% } %>
+                <li class="breadcrumb-item active" aria-current="page">Edit Item</li>
+            </ol>
+        </nav>
+
         <h2>Edit Item</h2>
 
-        <!-- Error Alert -->
-        <div id="errorAlert" class="alert alert-danger" style="display: none;"></div>
+        <% if (error) { %>
+            <div class="alert alert-danger"><%= error %></div>
+        <% } %>
 
-        <!-- Loader -->
-        <div id="loader" class="spinner-border text-primary" style="display: none;" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
+        <form action="/api/v1/items/<%= item._id %>?_method=PUT" method="POST">
+            <input type="hidden" name="_method" value="PUT">
+            <input type="hidden" name="categoryId" value="<%= category ? category._id : '' %>">
+            <input type="hidden" name="subCategoryId" value="<%= subCategory ? subCategory._id : '' %>">
 
-        <form id="editItemForm" onsubmit="submitForm(event)">
-            <input type="hidden" name="itemId" value="<%= item._id %>">
-
-            <!-- Subcategory (Non-Editable) -->
-            <div class="mb-3">
-                <label class="form-label">Subcategory</label>
-                <input type="text" class="form-control" value="<%= subcategory.name %>" readonly>
-            </div>
-
-            <!-- Item Name -->
             <div class="mb-3">
                 <label class="form-label">Item Name</label>
                 <input type="text" name="name" class="form-control" value="<%= item.name %>" required>
             </div>
 
-            <!-- Image URL -->
             <div class="mb-3">
                 <label class="form-label">Image URL</label>
                 <input type="url" name="image" class="form-control" value="<%= item.image %>" required>
             </div>
 
-            <!-- Description -->
             <div class="mb-3">
                 <label class="form-label">Description</label>
                 <textarea name="description" class="form-control" required><%= item.description %></textarea>
             </div>
 
-            <!-- Pricing -->
-            <div class="mb-3">
-                <label class="form-label">Base Price</label>
-                <input type="number" id="baseAmount" name="baseAmount" class="form-control" value="<%= item.baseAmount %>" oninput="updateTotalAmount()" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Discount</label>
-                <input type="number" id="discount" name="discount" class="form-control" value="<%= item.discount %>" oninput="updateTotalAmount()">
-            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Base Amount</label>
+                    <input type="number" name="baseAmount" class="form-control" value="<%= item.baseAmount %>" required>
+                </div>
 
-            <!-- Tax Inheritance -->
-            <div class="mb-3">
-                <label class="form-label">Tax Settings</label>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="overrideTax" name="overrideTax" value="true" onchange="toggleTaxFields()" <%= item.overrideTax ? "checked" : "" %>>
-                    <label class="form-check-label" for="overrideTax">
-                        Override Subcategory Tax (Currently Inheriting from "<%= subcategory.name %>")
-                    </label>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Discount</label>
+                    <input type="number" name="discount" class="form-control" value="<%= item.discount %>">
                 </div>
             </div>
 
-            <!-- Tax Fields (Hidden by Default) -->
-            <div id="taxFields" class="mb-3" style="display: <%= item.overrideTax ? "block" : "none" %>;">
-                <div class="mb-3">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Tax Applicability</label>
+                    <select name="taxApplicability" class="form-control">
+                        <option value="true" <%= item.taxApplicability ? "selected" : "" %>>Applicable</option>
+                        <option value="false" <%= !item.taxApplicability ? "selected" : "" %>>Not Applicable</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4 mb-3">
                     <label class="form-label">Tax Type</label>
-                    <select id="taxType" name="taxType" class="form-control">
+                    <select name="taxType" class="form-control">
                         <option value="percentage" <%= item.taxType === "percentage" ? "selected" : "" %>>Percentage</option>
                         <option value="fixed" <%= item.taxType === "fixed" ? "selected" : "" %>>Fixed</option>
                     </select>
                 </div>
 
-                <div class="mb-3">
+                <div class="col-md-4 mb-3">
                     <label class="form-label">Tax Amount</label>
-                    <input type="number" id="tax" name="tax" class="form-control" value="<%= item.tax %>" oninput="updateTotalAmount()" min="0" max="100">
+                    <input type="number" name="tax" class="form-control" value="<%= item.tax %>">
                 </div>
             </div>
 
-            <!-- Total Price -->
-            <div class="mb-3">
-                <label class="form-label">Total Price</label>
-                <input type="number" id="totalAmount" name="totalAmount" class="form-control" value="<%= item.totalAmount %>" readonly>
-            </div>
-
-            <!-- Save & Cancel Buttons -->
-            <button id="submitButton" type="submit" class="btn btn-primary">Save Changes</button>
-            <a href="/items/<%= item._id %>" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Update Item</button>
+            <a href="/api/v1/subcategories/<%= subCategory ? subCategory._id : category._id %>/items" class="btn btn-secondary">Cancel</a>
         </form>
     </div>
 

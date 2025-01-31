@@ -5,11 +5,270 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Subcategory</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #475569;
+            --hover-color: #334155;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --background-light: #f8fafc;
+            --card-shadow: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            background-color: var(--background-light);
+        }
+
+        /* Navbar */
+        .navbar {
+            background: var(--primary-color);
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .navbar h2 {
+            color: white;
+            margin: 0;
+        }
+
+        .navbar .btn-categories {
+            background: white;
+            color: var(--primary-color);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            margin-left: 1rem;
+        }
+
+        .navbar .btn-categories:hover {
+            background: var(--hover-color);
+            color: white;
+        }
+
+        /* Form styling */
+        .edit-form {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px var(--card-shadow);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-header {
+            background-color: var(--background-light);
+            padding: 1rem;
+            margin: -2rem -2rem 2rem -2rem;
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 8px 8px 0 0;
+        }
+
+        .form-header h2 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+        }
+
+        .form-control {
+            border-color: var(--border-color);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(71, 85, 105, 0.25);
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Tax Fields Section */
+        #taxFields {
+            background-color: var(--background-light);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--hover-color);
+            border-color: var(--hover-color);
+        }
+
+        .btn-secondary {
+            background-color: var(--text-secondary);
+            border-color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--text-primary);
+            border-color: var(--text-primary);
+        }
+
+        /* Loader styling */
+        #loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+
+        .form-section {
+            background-color: var(--background-light);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container d-flex justify-content-between align-items-center">
+            <h2>Category Flow</h2>
+            <div>
+                <a href="/" class="btn-categories">Categories</a>
+                <a href="/api/v1/categories/<%= category._id %>/subcategories" class="btn-categories">Subcategories</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Edit Form -->
+        <div class="edit-form">
+            <div class="form-header">
+                <h2>Edit Subcategory</h2>
+            </div>
+
+            <!-- Loader -->
+            <div id="loader" class="spinner-border text-primary" style="display: none;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+
+            <form id="editSubcategoryForm" onsubmit="submitForm(event)">
+                <input type="hidden" name="subcategoryId" value="<%= subcategory._id %>">
+                <input type="hidden" name="categoryId" value="<%= category._id %>">
+
+                <!-- Basic Information Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Basic Information</h3>
+                    
+                    <!-- Category (Non-Editable) -->
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <input type="text" class="form-control" value="<%= category.name %>" readonly>
+                    </div>
+
+                    <!-- Subcategory Name -->
+                    <div class="mb-3">
+                        <label class="form-label">Subcategory Name</label>
+                        <input type="text" name="name" class="form-control" value="<%= subcategory.name %>" required>
+                    </div>
+
+                    <!-- Image URL -->
+                    <div class="mb-3">
+                        <label class="form-label">Image URL</label>
+                        <input type="url" name="image" class="form-control" value="<%= subcategory.image %>" required>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3" required><%= subcategory.description %></textarea>
+                    </div>
+                </div>
+
+                <!-- Tax Settings Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Tax Settings</h3>
+                    
+                    <!-- Tax Applicability -->
+                    <div class="mb-3">
+                        <label class="form-label">Tax Applicability</label>
+                        <select name="taxApplicability" id="taxApplicability" class="form-control" onchange="toggleTaxFields()">
+                            <option value="true" <%= subcategory.taxApplicability ? 'selected' : '' %>>Applicable</option>
+                            <option value="false" <%= !subcategory.taxApplicability ? 'selected' : '' %>>Not Applicable</option>
+                        </select>
+                    </div>
+
+                    <!-- Tax Inheritance -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="overrideTax" name="overrideTax" 
+                                value="true" onchange="toggleTaxFields()" <%= subcategory.overrideTax ? "checked" : "" %>>
+                            <label class="form-check-label" for="overrideTax">
+                                Override Category Tax (Currently Inheriting from "<%= category.name %>")
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Tax Fields -->
+                    <div id="taxFields" style="display: <%= subcategory.overrideTax ? 'block' : 'none' %>;">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tax Type</label>
+                                <select name="taxType" class="form-control">
+                                    <option value="percentage" <%= subcategory.taxType === 'percentage' ? 'selected' : '' %>>Percentage</option>
+                                    <option value="fixed" <%= subcategory.taxType === 'fixed' ? 'selected' : '' %>>Fixed</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tax Amount</label>
+                                <input type="number" name="tax" class="form-control" 
+                                    value="<%= subcategory.tax %>" min="0" 
+                                    step="<%= subcategory.taxType === 'percentage' ? '0.01' : '1' %>">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-2 mt-4">
+                    <button id="submitButton" type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="/api/v1/categories/<%= category._id %>/subcategories" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
     <script>
         function toggleTaxFields() {
-            let overrideTax = document.getElementById("overrideTax").checked;
-            let taxFields = document.getElementById("taxFields");
-            taxFields.style.display = overrideTax ? "block" : "none";
+            const taxApplicability = document.getElementById("taxApplicability").value === "true";
+            const overrideTax = document.getElementById("overrideTax").checked;
+            const taxFields = document.getElementById("taxFields");
+            
+            taxFields.style.display = (taxApplicability && overrideTax) ? "block" : "none";
         }
 
         function submitForm(event) {
@@ -19,7 +278,13 @@
         
             let formData = new FormData(document.getElementById("editSubcategoryForm"));
             let jsonData = {};
-            formData.forEach((value, key) => jsonData[key] = value);
+            formData.forEach((value, key) => {
+                if (key === "overrideTax") {
+                    jsonData[key] = document.getElementById("overrideTax").checked;
+                } else {
+                    jsonData[key] = value;
+                }
+            });
         
             fetch(`/api/v1/subcategories/${jsonData.subcategoryId}`, {
                 method: "PUT",
@@ -35,23 +300,9 @@
             .then(data => {
                 document.getElementById("loader").style.display = "none";
                 document.getElementById("submitButton").disabled = false;
-        
+
                 if (data.success) {
-                    toastr.success(`Subcategory '${jsonData.name}' in '${jsonData.categoryName}' updated successfully!`, "Success");
-        
-                    let subcategoryElement = document.getElementById(`subcategory-${jsonData.subcategoryId}`);
-                    if (subcategoryElement) {
-                        subcategoryElement.querySelector(".subcategory-title").innerText = jsonData.name;
-                        subcategoryElement.querySelector(".subcategory-description").innerText = jsonData.description;
-                        subcategoryElement.querySelector(".subcategory-img").src = jsonData.image;
-        
-                        let taxText = jsonData.taxApplicability === "true"
-                            ? (jsonData.taxType === "percentage" ? jsonData.tax + "%" : "₹" + jsonData.tax)
-                            : "Not Applicable";
-                        subcategoryElement.querySelector(".subcategory-tax").innerText = `Tax: ${taxText}`;
-                    }
-        
-                    // ✅ Redirect Immediately
+                    toastr.success(`Subcategory '${jsonData.name}' updated successfully!`, "Success");
                     setTimeout(() => {
                         window.location.assign(`/api/v1/categories/${jsonData.categoryId}/subcategories`);
                     }, 1500);
@@ -65,98 +316,11 @@
                 toastr.error(error.message || "Failed to communicate with the server", "Error");
             });
         }
-    </script>        
-</head>
-<body>
 
-    <div class="container mt-4">
-        <!-- Breadcrumb Navigation -->
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/api/v1/categories">Categories</a></li>
-                <li class="breadcrumb-item"><a href="/api/v1/categories/<%= category._id %>/subcategories"><%= category.name %></a></li>
-                <li class="breadcrumb-item active" aria-current="page">Edit Subcategory</li>
-            </ol>
-        </nav>
-
-        <h2>Edit Subcategory</h2>
-
-        <!-- Error Alert -->
-        <div id="errorAlert" class="alert alert-danger" style="display: none;"></div>
-
-        <!-- Loader -->
-        <div id="loader" class="spinner-border text-primary" style="display: none;" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-
-        <form id="editSubcategoryForm" onsubmit="submitForm(event)">
-            <input type="hidden" name="subcategoryId" value="<%= subcategory._id %>">
-            <input type="hidden" name="categoryId" value="<%= category._id %>">
-
-            <!-- Category (Non-Editable) -->
-            <div class="mb-3">
-                <label class="form-label">Category</label>
-                <input type="text" class="form-control" value="<%= category.name %>" readonly>
-            </div>
-
-            <!-- Subcategory Name -->
-            <div class="mb-3">
-                <label class="form-label">Subcategory Name</label>
-                <input type="text" name="name" class="form-control" value="<%= subcategory.name %>" required>
-            </div>
-
-            <!-- Image URL -->
-            <div class="mb-3">
-                <label class="form-label">Image URL</label>
-                <input type="url" name="image" class="form-control" value="<%= subcategory.image %>" required>
-            </div>
-
-            <!-- Description -->
-            <div class="mb-3">
-                <label class="form-label">Description</label>
-                <textarea name="description" class="form-control" required><%= subcategory.description %></textarea>
-            </div>
-
-            <!-- Tax Inheritance -->
-            <div class="mb-3">
-                <label class="form-label">Tax Settings</label>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="overrideTax" name="overrideTax" value="true" onchange="toggleTaxFields()" <%= subcategory.overrideTax ? "checked" : "" %>>
-                    <label class="form-check-label" for="overrideTax">
-                        Override Category Tax (Currently Inheriting from "<%= category.name %>")
-                    </label>
-                </div>
-            </div>
-
-            <!-- Tax Fields (Hidden by Default) -->
-            <div id="taxFields" class="mb-3" style="display: <%= subcategory.overrideTax ? "block" : "none" %>;">
-                <div class="mb-3">
-                    <label class="form-label">Tax Applicability</label>
-                    <select name="taxApplicability" class="form-control">
-                        <option value="true" <%= subcategory.taxApplicability ? "selected" : "" %>>Applicable</option>
-                        <option value="false" <%= !subcategory.taxApplicability ? "selected" : "" %>>Not Applicable</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Tax Type</label>
-                    <select name="taxType" class="form-control">
-                        <option value="percentage" <%= subcategory.taxType === "percentage" ? "selected" : "" %>>Percentage</option>
-                        <option value="fixed" <%= subcategory.taxType === "fixed" ? "selected" : "" %>>Fixed</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Tax Amount</label>
-                    <input type="number" name="tax" class="form-control" value="<%= subcategory.tax %>" min="0" max="100">
-                </div>
-            </div>
-
-            <!-- Save & Cancel Buttons -->
-            <button id="submitButton" type="submit" class="btn btn-primary">Save Changes</button>
-            <a href="/api/v1/categories/<%= category._id %>/subcategories" class="btn btn-secondary">Cancel</a>
-        </form>
-    </div>
-
+        // Initialize tax fields visibility on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleTaxFields();
+        });
+    </script>
 </body>
 </html>

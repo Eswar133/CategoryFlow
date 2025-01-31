@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subcategories</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-    
     <style>
         :root {
             --primary-color: #475569;
@@ -22,6 +20,7 @@
             background-color: var(--background-light);
         }
 
+        /* Custom styles for cards */
         .subcategory-card {
             height: 450px;
             transition: all 0.2s ease;
@@ -85,6 +84,27 @@
             margin-top: auto;
         }
 
+        /* Form styling */
+        .create-form {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px var(--card-shadow);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-header {
+            background-color: var(--background-light);
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .form-header h2 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+        }
+
         .btn {
             padding: 0.5rem 1rem;
             border-radius: 6px;
@@ -102,10 +122,82 @@
             border-color: var(--hover-color);
             color: white;
         }
+
+        .form-control {
+            border-color: var(--border-color);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(71, 85, 105, 0.25);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--hover-color);
+            border-color: var(--hover-color);
+        }
+
+        /* Navbar styles */
+        .navbar {
+            background: var(--primary-color);
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .navbar h2 {
+            color: white;
+            margin: 0;
+        }
+
+        .navbar .btn-categories {
+            background: white;
+            color: var(--primary-color);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .navbar .btn-categories:hover {
+            background: var(--hover-color);
+            color: white;
+        }
+
+        /* Tax information styling */
+        .tax-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background-color: var(--background-light);
+            border-radius: 4px;
+        }
+
+        #taxFields {
+            padding: 1rem;
+            background-color: var(--background-light);
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
-<body class="bg-light">
-    <div class="container mt-4">
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container d-flex justify-content-between align-items-center">
+            <h2>Category Flow</h2>
+            <a href="/" class="btn-categories">Categories</a>
+        </div>
+    </nav>
+
+    <div class="container">
         <h1 class="text-center mb-4">Subcategories</h1>
 
         <!-- Create Subcategory Form -->
@@ -124,36 +216,42 @@
                     </div>
                 <% } %>
                 <form action="/api/v1/categories/<%= category._id %>/subcategories" method="POST">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Subcategory Name</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Subcategory Name</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Image URL</label>
+                            <input type="url" name="image" class="form-control" required>
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label for="image" class="form-label">Image URL</label>
-                        <input type="url" class="form-control" id="image" name="image" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3" required></textarea>
                     </div>
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label for="taxApplicability" class="form-label">Tax Applicability</label>
-                            <select class="form-control" id="taxApplicability" name="taxApplicability">
+                            <label class="form-label">Tax Applicability</label>
+                            <select name="taxApplicability" id="taxApplicability" class="form-control" onchange="toggleTaxFields()">
                                 <option value="true">Applicable</option>
                                 <option value="false">Not Applicable</option>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="taxType" class="form-label">Tax Type</label>
-                            <select class="form-control" id="taxType" name="taxType">
-                                <option value="percentage">Percentage</option>
-                                <option value="fixed">Fixed</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="tax" class="form-label">Tax Amount</label>
-                            <input type="number" class="form-control" id="tax" name="tax" placeholder="Enter tax amount">
+                        <div id="taxFields">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Tax Type</label>
+                                    <select name="taxType" class="form-control">
+                                        <option value="percentage">Percentage</option>
+                                        <option value="fixed">Fixed</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Tax Amount</label>
+                                    <input type="number" name="tax" class="form-control" min="0">
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Create Subcategory</button>
@@ -163,36 +261,43 @@
 
         <!-- Subcategories Grid -->
         <div class="row">
-            <% if (subcategories && subcategories.length > 0) { %>
-                <% subcategories.forEach(subcategory => { %>
-                    <div class="col-md-4" id="subcategory-<%= subcategory._id %>">
-                        <div class="subcategory-card">
-                            <div class="subcategory-img-wrapper">
-                                <img src="<%= subcategory.image %>" class="subcategory-img" alt="<%= subcategory.name %>">
+            <% subcategories.forEach(subcategory => { %>
+                <div class="col-md-4" id="subcategory-<%= subcategory._id %>">
+                    <div class="subcategory-card">
+                        <div class="subcategory-img-wrapper">
+                            <img src="<%= subcategory.image %>" class="subcategory-img" alt="<%= subcategory.name %>">
+                        </div>
+                        <div class="subcategory-body">
+                            <h5 class="subcategory-title"><%= subcategory.name %></h5>
+                            <p class="subcategory-description"><%= subcategory.description %></p>
+                            <div class="tax-info">
+                                <strong>Tax:</strong> 
+                                <%= subcategory.taxApplicability 
+                                    ? (subcategory.taxType === "percentage" ? subcategory.tax + "%" : "₹" + subcategory.tax) 
+                                    : "Not Applicable" %>
                             </div>
-                            <div class="subcategory-body">
-                                <h5 class="subcategory-title"><%= subcategory.name %></h5>
-                                <p class="subcategory-description"><%= subcategory.description %></p>
-                                <p><strong>Tax: </strong> <%= subcategory.taxApplicability ? (subcategory.taxType === "percentage" ? subcategory.tax + "%" : "₹" + subcategory.tax) : "Not Applicable" %></p>
-                                <div class="subcategory-actions">
-                                    <a href="/api/v1/subcategories/<%= subcategory._id %>/items" class="btn btn-view">View Items</a>
-                                    <a href="/api/v1/subcategories/<%= subcategory._id %>/edit" class="btn btn-warning">Edit</a>
-                                    <button class="btn btn-danger" onclick="deleteSubcategory('<%= subcategory._id %>')">Delete</button>
-                                </div>
+                            <div class="subcategory-actions">
+                                <a href="/api/v1/subcategories/<%= subcategory._id %>/items" class="btn btn-view">View Items</a>
+                                <a href="/api/v1/subcategories/<%= subcategory._id %>/edit" class="btn btn-warning">Edit</a>
+                                <button onclick="deleteSubcategory('<%= subcategory._id %>')" class="btn btn-danger">Delete</button>
                             </div>
                         </div>
                     </div>
-                <% }); %>
-            <% } else { %>
-                <div class="col-12">
-                    <p class="text-center text-muted">No subcategories available.</p>
                 </div>
-            <% } %>
+            <% }); %>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+
     <script>
+        function toggleTaxFields() {
+            document.getElementById("taxFields").style.display = 
+                document.getElementById("taxApplicability").value === "true" ? "block" : "none";
+        }
+
         async function deleteSubcategory(subcategoryId) {
             if (!confirm("Are you sure you want to delete this subcategory?")) {
                 return;
@@ -202,17 +307,12 @@
                 const response = await fetch(`/api/v1/subcategories/${subcategoryId}?_method=DELETE`, {
                     method: "POST",
                 });
-        
+
                 const result = await response.json();
-        
+
                 if (response.ok) {
                     toastr.success(result.message, "Success");
-        
-                    // ✅ Remove the deleted subcategory from the page **without refreshing**
-                    const subcategoryElement = document.getElementById(`subcategory-${subcategoryId}`);
-                    if (subcategoryElement) {
-                        subcategoryElement.remove();
-                    }
+                    document.getElementById(`subcategory-${subcategoryId}`).remove();
                 } else {
                     toastr.error(result.message, "Error");
                 }
@@ -220,6 +320,6 @@
                 toastr.error("Something went wrong!", "Error");
             }
         }
-    </script>              
+    </script>
 </body>
 </html>

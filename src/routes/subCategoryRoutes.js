@@ -7,10 +7,92 @@ const Item = require('../models/Item');
 const { body, validationResult } = require('express-validator');
 const methodOverride = require('method-override');
 
-router.use(methodOverride('_method')); // Enable PUT support in forms
+router.use(methodOverride('_method')); // Enable PUT and DELETE support in forms
 
+/**
+ * @desc Create a subcategory under a category
+ * @route POST /categories/:categoryId/subcategories
+ */
+router.post('/:categoryId/subcategories', async (req, res) => {
+    try {
+        const { categoryId } = req.params;
+        const { name, image, description, taxApplicability, tax, taxType } = req.body;
 
+        const category = await Category.findById(categoryId);
+        if (!category) {
+            return res.status(404).render('subcategories', {
+                category: null,
+                subcategories: [],
+                errors: [{ msg: "Category not found" }],
+            });
+        }
 
+        const existingSubCategory = await SubCategory.findOne({ name, category: categoryId });
+        if (existingSubCategory) {
+            const subcategories = await SubCategory.find({ category: categoryId });
+            return res.render('subcategories', {
+                category,
+                subcategories,
+                errors: [{ msg: "Subcategory name already exists in this category" }],
+            });
+        }
+
+        const newSubCategory = new SubCategory({
+            name,
+            image,
+            description,
+            category: categoryId,
+            taxApplicability,
+            tax,
+            taxType,
+        });
+
+        await newSubCategory.save();
+        res.redirect(`/api/v1/categories/${categoryId}/subcategories`);
+    } catch (error) {
+        console.error("Error creating subcategory:", error);
+        res.status(500).render('subcategories', {
+            category: null,
+            subcategories: [],
+            errors: [{ msg: "Server error occurred while creating subcategory" }],
+        });
+    }
+});
+
+/**
+ * @desc Get all subcategories under a category
+ * @route GET /categories/:categoryId/subcategories
+ */
+router.get('/:categoryId/subcategories', async (req, res) => {
+    try {
+        const { categoryId } = req.params;
+
+        const category = await Category.findById(categoryId);
+        if (!category) {
+            return res.status(404).render('subcategories', { 
+                category: null, 
+                subcategories: [], 
+                errors: [{ msg: "Category not found" }] 
+            });
+        }
+
+        const subcategories = await SubCategory.find({ category: categoryId });
+        res.render('subcategories', { category, subcategories, errors: [] });
+
+    } catch (error) {
+        console.error("Error fetching subcategories:", error);
+        res.status(500).render('subcategories', { 
+            category: null, 
+            subcategories: [], 
+            errors: [{ msg: "Server error occurred while fetching subcategories." }] 
+        });
+    }
+});
+
+/**
+ * @desc Get all items under a subcategory
+ * @route GET /subcategories/:id/items
+ */
 router.get("/:id/items", async (req, res) => {
     try {
         const subCategory = await SubCategory.findById(req.params.id);
@@ -28,36 +110,10 @@ router.get("/:id/items", async (req, res) => {
     }
 });
 
-// ✅ Get all subcategories under a category
-router.get('/:categoryId/subcategories', async (req, res) => {
-    try {
-        const { categoryId } = req.params;
-
-        const category = await Category.findById(categoryId);
-        if (!category) {
-            return res.status(404).render('subcategories', { 
-                category: null, 
-                subcategories: [], 
-                errors: [{ msg: "Category not found" }] 
-            });
-        }
-
-        const subcategories = await SubCategory.find({ category: categoryId });
-
-        // Pass category and subcategories to the view
-        res.render('subcategories', { category, subcategories, errors: [] });
-    } catch (error) {
-        console.error("Error fetching subcategories:", error);
-        res.status(500).render('subcategories', { 
-            category: null, 
-            subcategories: [], 
-            errors: [{ msg: "Server error occurred while fetching subcategories." }] 
-        });
-    }
-});
-
-
-// ✅ Get a single subcategory details
+/**
+ * @desc Get a single subcategory details
+ * @route GET /subcategories/:id
+ */
 router.get("/:id", async (req, res) => {
     try {
         const subCategory = await SubCategory.findById(req.params.id);
@@ -66,7 +122,7 @@ router.get("/:id", async (req, res) => {
                 items: [], 
                 subCategory: null, 
                 category: null, 
-                item: null, // ✅ Ensure item is explicitly set to null
+                item: null, 
                 error: "Subcategory not found" 
             });
         }
@@ -78,7 +134,7 @@ router.get("/:id", async (req, res) => {
             items, 
             subCategory, 
             category, 
-            item: null, // ✅ Ensure item is explicitly set to null
+            item: null, 
             error: null 
         });
 
@@ -87,14 +143,16 @@ router.get("/:id", async (req, res) => {
             items: [], 
             subCategory: null, 
             category: null, 
-            item: null, // ✅ Ensure item is explicitly set to null
+            item: null, 
             error: "Server error while fetching items." 
         });
     }
 });
 
-
-// ✅ Render Edit Subcategory Page
+/**
+ * @desc Render Edit Subcategory Page
+ * @route GET /subcategories/:id/edit
+ */
 router.get('/:id/edit', async (req, res) => {
     try {
         const subcategory = await SubCategory.findById(req.params.id);
@@ -113,8 +171,10 @@ router.get('/:id/edit', async (req, res) => {
     }
 });
 
-// ✅ Update Subcategory with Validation
-// ✅ Update Subcategory with Validation (JSON response)
+/**
+ * @desc Update a subcategory
+ * @route PUT /subcategories/:id
+ */
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -136,13 +196,13 @@ router.put('/:id', async (req, res) => {
                 taxType: taxApplicability ? (taxType !== undefined ? taxType : subCategory.taxType) : null
             },
             { new: true }
-        ).populate('category'); // ✅ Ensure the updated category is included
+        ).populate('category'); 
 
         return res.status(200).json({
             success: true,
             message: "Subcategory updated successfully!",
             subCategory: updatedSubCategory,
-            categoryName: updatedSubCategory.category.name // ✅ Send category name
+            categoryName: updatedSubCategory.category.name 
         });
 
     } catch (error) {
@@ -154,9 +214,10 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-
-
-// ✅ Delete a subcategory
+/**
+ * @desc Delete a subcategory
+ * @route DELETE /subcategories/:id
+ */
 router.delete('/:id', async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -189,101 +250,6 @@ router.delete('/:id', async (req, res) => {
         await session.abortTransaction();
         session.endSession();
         res.status(500).json({ message: "Server error", error: error.message });
-    }
-});
-// ✅ Add subcategory creation route INSIDE categoryRoutes.js
-router.post('/:id/subcategories', [
-    // Add validation if needed
-  ], async (req, res) => {
-    try {
-      const { id: categoryId } = req.params;
-      const { name, image, description, taxApplicability, tax, taxType } = req.body;
-  
-      const category = await Category.findById(categoryId);
-      if (!category) {
-        return res.status(404).render('subcategories', {
-          category: null,
-          subcategories: [],
-          errors: [{ msg: "Category not found" }]
-        });
-      }
-  
-      const existingSubCategory = await SubCategory.findOne({ name, category: categoryId });
-      if (existingSubCategory) {
-        const subcategories = await SubCategory.find({ category: categoryId });
-        return res.render('subcategories', {
-          category,
-          subcategories,
-          errors: [{ msg: "Subcategory name already exists" }]
-        });
-      }
-  
-      const newSubCategory = new SubCategory({
-        name,
-        image,
-        description,
-        category: categoryId,
-        taxApplicability,
-        tax,
-        taxType
-      });
-  
-      await newSubCategory.save();
-      res.redirect(`/api/v1/categories/${categoryId}/subcategories`);
-  
-    } catch (error) {
-      res.status(500).render('subcategories', {
-        errors: [{ msg: "Server error" }]
-      });
-    }
-  });
-
-  router.post('/:categoryId/subcategories', async (req, res) => {
-    try {
-        const { categoryId } = req.params;
-        const { name, image, description, taxApplicability, tax, taxType } = req.body;
-
-        // Check if the category exists
-        const category = await Category.findById(categoryId);
-        if (!category) {
-            return res.status(404).render('subcategories', {
-                category: null,
-                subcategories: [],
-                errors: [{ msg: "Category not found" }],
-            });
-        }
-
-        // Check if the subcategory name already exists in this category
-        const existingSubCategory = await SubCategory.findOne({ name, category: categoryId });
-        if (existingSubCategory) {
-            const subcategories = await SubCategory.find({ category: categoryId });
-            return res.render('subcategories', {
-                category,
-                subcategories,
-                errors: [{ msg: "Subcategory name already exists in this category" }],
-            });
-        }
-
-        // Create a new subcategory
-        const newSubCategory = new SubCategory({
-            name,
-            image,
-            description,
-            category: categoryId,
-            taxApplicability,
-            tax,
-            taxType,
-        });
-
-        await newSubCategory.save();
-        res.redirect(`/api/v1/categories/${categoryId}/subcategories`);
-    } catch (error) {
-        console.error("Error creating subcategory:", error);
-        res.status(500).render('subcategories', {
-            category: null,
-            subcategories: [],
-            errors: [{ msg: "Server error occurred while creating subcategory" }],
-        });
     }
 });
 

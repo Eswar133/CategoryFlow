@@ -3,27 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= item ? item.name : "Items" %></title>
+    <title><%= typeof item !== 'undefined' && item ? item.name : "Items" %></title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
+<style>
+    :root {
+        --primary-color: #475569;
+        --hover-color: #334155;
+        --border-color: #e2e8f0;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --background-light: #f8fafc;
+        --card-shadow: rgba(0, 0, 0, 0.05);
+    }
+
+    body {
+        background-color: var(--background-light);
+    }
+
+    /* Card styles */
+    .item-card {
+        height: 450px;
+        transition: all 0.2s ease;
+        margin-bottom: 2rem;
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .item-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px var(--card-shadow);
+    }
+
+    .item-img-wrapper {
+        height: 200px;
+        overflow: hidden;
+        background-color: var(--background-light);
+    }
+
+    .item-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .item-card:hover .item-img {
+        transform: scale(1.05);
+    }
+
+    /* Form styling */
+    .card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px var(--card-shadow);
+        border: 1px solid var(--border-color);
+    }
+
+    .form-control {
+        border-color: var(--border-color);
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(71, 85, 105, 0.25);
+    }
+
+    .form-label {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    /* Button styles */
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--hover-color);
+        border-color: var(--hover-color);
+    }
+
+    .btn-secondary {
+        background-color: var(--text-secondary);
+        border-color: var(--text-secondary);
+    }
+
+    .btn-secondary:hover {
+        background-color: var(--text-primary);
+        border-color: var(--text-primary);
+    }
+
+    /* Breadcrumb styling */
+    .breadcrumb {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 1.5rem;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb-item a:hover {
+        color: var(--hover-color);
+    }
+
+    /* Item details styling */
+    .list-group-item {
+        border-color: var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .list-group-item strong {
+        color: var(--text-primary);
+    }
+
+    /* Single item view */
+    .single-item {
+        box-shadow: none;
+        height: auto;
+    }
+
+    .single-item .item-img-wrapper {
+        height: 300px;
+    }
+
+    .lead {
+        color: var(--text-secondary);
+    }
+
+    h2, h3, h4 {
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+    }
+
+    .pricing-details {
+        background-color: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .alert {
+        border: none;
+        border-radius: 6px;
+    }
+
+    .alert-danger {
+        background-color: #fecaca;
+        color: #991b1b;
+    }
+
+    /* Card body content */
+    .card-title {
+        color: var(--text-primary);
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+
+    .card-text {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+    }
+</style>
 <body class="bg-light">
 
     <div class="container mt-4">
         <!-- Breadcrumb Navigation -->
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/api/v1/categories">Categories</a></li>
+                
                 <% if (category) { %>
-                    <li class="breadcrumb-item"><a href="/api/v1/categories/<%= category._id %>/subcategories"><%= category.name %></a></li>
+                    <li class="breadcrumb-item"><a href="/">categories</a></li>
                 <% } %>
                 <% if (subCategory) { %>
-                    <li class="breadcrumb-item"><a href="/api/v1/subcategories/<%= subCategory._id %>/items"><%= subCategory.name %></a></li>
+                    <li class="breadcrumb-item"><a href="/api/v1/categories/<%= category._id %>/subcategories"><%= subCategory.name %></a></li>
                 <% } %>
-                <% if (item) { %>
+                <% if (typeof item !== 'undefined' && item) { %>
                     <li class="breadcrumb-item active" aria-current="page"><%= item.name %></li>
                 <% } else { %>
                     <li class="breadcrumb-item active" aria-current="page">Items</li>
                 <% } %>
+                              
             </ol>
         </nav>
 
@@ -31,7 +212,7 @@
             <div class="alert alert-danger"><%= error %></div>
         <% } %>
 
-        <% if (!item) { %>
+        <% if (typeof item === 'undefined') { %>
         <!-- Display all items under subcategory -->
         <h2 class="text-center">Items under <%= subCategory ? subCategory.name : "this category" %></h2>
 
@@ -110,6 +291,8 @@
                                 <h5 class="card-title"><%= item.name %></h5>
                                 <p class="card-text"><%= item.description %></p>
                                 <a href="/api/v1/items/<%= item._id %>" class="btn btn-primary">View Details</a>
+                                <a href="/api/v1/items/<%= item._id %>/edit" class="btn btn-warning">Edit</a>
+
                             </div>
                         </div>
                     </div>
@@ -132,18 +315,42 @@
                     <li class="list-group-item"><strong>Discount:</strong> -₹<%= item.discount %></li>
                     <% if (item.taxApplicability) { %>
                         <li class="list-group-item">
-                            <strong>Tax:</strong>
-                            <% if (item.taxType === 'percentage') { %>
-                                <%= item.tax %>% (₹<%= (item.tax / 100) * item.baseAmount %> )
+                            <strong>Tax:</strong> 
+                            <% if (item.taxApplicability) { %>
+                                <% if (item.subCategory && item.subCategory.taxApplicability) { %>
+                                    <%= item.subCategory.tax %><%= item.subCategory.taxType === "percentage" ? "%" : "₹" %> from Subcategory
+                                <% } else if (item.category && item.category.taxApplicability) { %>
+                                    <%= item.category.tax %><%= item.category.taxType === "percentage" ? "%" : "₹" %> from Category
+                                <% } else { %>
+                                    0 (No Tax)
+                                <% } %>
                             <% } else { %>
-                                ₹<%= item.tax %>
+                                0 (No Tax)
                             <% } %>
                         </li>
+                        
                     <% } else { %>
                         <li class="list-group-item"><strong>Tax:</strong> Not applicable</li>
                     <% } %>
-                    <li class="list-group-item"><strong>Total Price:</strong> ₹<%= item.totalAmount %></li>
-                </ul>
+                    <li class="list-group-item">
+                        <strong>Total Price:</strong> ₹<%= item.totalAmount %>
+                        <br>
+                        <small class="text-muted">
+                            (Base: ₹<%= item.baseAmount %> 
+                            <% if (item.discount > 0) { %> - Discount: ₹<%= item.discount %> <% } %>
+                            + Tax: 
+                            <% if (item.subCategory && item.subCategory.taxApplicability) { %>
+                                <%= item.subCategory.tax %><%= item.subCategory.taxType === "percentage" ? "%" : "₹" %> (Subcategory) 
+                            <% } else if (item.category && item.category.taxApplicability) { %>
+                                <%= item.category.tax %><%= item.category.taxType === "percentage" ? "%" : "₹" %> (Category)
+                            <% } else { %>
+                                0 (No Tax)
+                            <% } %>
+                            )
+                        </small>
+                    </li>
+                    
+                    </ul>
 
                 <a href="/api/v1/subcategories/<%= subCategory ? subCategory._id : category._id %>/items" class="btn btn-secondary mt-4">Back</a>
             </div>
@@ -151,5 +358,28 @@
         <% } %>
     </div>
 
+
 </body>
 </html>
+
+<script>
+    async function updateTax(subCategoryId) {
+        const response = await fetch(`/api/v1/subcategories/${subCategoryId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                taxApplicability: document.getElementById(`taxApplicability-${subCategoryId}`).checked,
+                tax: document.getElementById(`taxAmount-${subCategoryId}`).value,
+                taxType: document.getElementById(`taxType-${subCategoryId}`).value
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            location.reload(); // Refresh UI
+        } else {
+            alert("Failed to update tax!");
+        }
+    }
+</script>
