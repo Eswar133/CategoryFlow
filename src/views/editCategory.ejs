@@ -4,113 +4,137 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Category</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <script>
-        function validateForm() {
-            let name = document.forms["editCategoryForm"]["name"].value;
-            let image = document.forms["editCategoryForm"]["image"].value;
-            if (name.trim() === "" || image.trim() === "") {
-                alert("Name and Image URL are required!");
-                return false;
-            }
-            return true;
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .navbar {
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
-        document.addEventListener("DOMContentLoaded", function () {
-          const form = document.getElementById("editCategoryForm");
-      
-          form.addEventListener("submit", async function (event) {
-            event.preventDefault(); // Prevent default form submission
-      
-            const formData = new FormData(form);
-            const categoryId = "<%= category._id %>"; // Ensure correct ID is passed
-            const response = await fetch(`/categories/${categoryId}`, {
-              method: "PUT",
-              body: new URLSearchParams(formData),
-              headers: { "Content-Type": "application/x-www-form-urlencoded" }
-            });
-      
-            const result = await response.json();
-      
-            if (response.ok) {
-              toastr.success("Category updated successfully!", "Success");
-              highlightUpdatedFields(formData);
-            } else {
-              toastr.error(result.message || "Something went wrong", "Error");
-            }
-          });
-      
-          function highlightUpdatedFields(formData) {
-            formData.forEach((value, key) => {
-              const field = document.querySelector(`[name=${key}]`);
-              if (field) {
-                field.style.border = "2px solid green"; // Highlight updated fields
-                setTimeout(() => (field.style.border = ""), 2000); // Remove highlight after 2 sec
-              }
-            });
-          }
-        });
-    </script>
+        .card {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
 </head>
-<body>
-    <!-- Add Toastr CSS & JS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light mb-4">
+        <div class="container">
+            <a href="/categories" class="btn btn-outline-primary">Categories</a>
+        </div>
+    </nav>
+    
     <div class="container mt-4">
-        <h2>Edit Category</h2>
+        <h1 class="text-center mb-4">Edit Category</h1>
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h2>Update Category Details</h2>
+            </div>
+            <div class="card-body">
+                <form action="/categories/<%= category._id %>?_method=PATCH" method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category Name</label>
+                            <input type="text" name="name" class="form-control" value="<%= category.name %>" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Image URL</label>
+                            <input type="url" name="image" class="form-control" value="<%= category.image %>" required>
+                        </div>
+                    </div>
 
-        <% if (message) { %>
-            <div class="alert alert-success"><%= message %></div>
-        <% } %>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3" required><%= category.description %></textarea>
+                    </div>
 
-        <% if (errors.length > 0) { %>
-            <div class="alert alert-danger">
-                <ul>
-                    <% errors.forEach(error => { %>
-                        <li><%= error.msg %></li>
-                    <% }); %>
-                </ul>
-            </div>
-        <% } %>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tax Applicability</label>
+                            <select name="taxApplicability" id="taxApplicability" class="form-control">
+                                <option value="true" <%= category.taxApplicability ? 'selected' : '' %>>Applicable</option>
+                                <option value="false" <%= !category.taxApplicability ? 'selected' : '' %>>Not Applicable</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3" id="taxTypeContainer">
+                            <label class="form-label">Tax Type</label>
+                            <select name="taxType" id="taxType" class="form-control">
+                                <option value="percentage" <%= category.taxType === 'percentage' ? 'selected' : '' %>>Percentage</option>
+                                <option value="fixed" <%= category.taxType === 'fixed' ? 'selected' : '' %>>Fixed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3" id="taxAmountContainer">
+                            <label class="form-label">Tax Amount</label>
+                            <input type="number" name="tax" id="tax" class="form-control" step="0.01" value="<%= category.tax %>">
+                        </div>
+                    </div>
 
-        <!-- Form with PUT Method Override -->
-        <form name="editCategoryForm" action="/api/v1/categories/<%= category._id %>?_method=PUT" method="POST" onsubmit="return validateForm()">
-            <input type="hidden" name="_method" value="PUT">
-            <div class="mb-3">
-                <label class="form-label">Category Name</label>
-                <input type="text" name="name" class="form-control" value="<%= category.name %>" required>
+                    <button type="submit" class="btn btn-success">Update Category</button>
+                    <a href="/categories" class="btn btn-secondary">Cancel</a>
+                </form>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Image URL</label>
-                <input type="url" name="image" class="form-control" value="<%= category.image %>" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Description</label>
-                <textarea name="description" class="form-control" required><%= category.description %></textarea>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Tax Applicability</label>
-                <select name="taxApplicability" class="form-control">
-                    <option value="true" <%= category.taxApplicability ? "selected" : "" %>>Applicable</option>
-                    <option value="false" <%= !category.taxApplicability ? "selected" : "" %>>Not Applicable</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Tax Type</label>
-                <select name="taxType" class="form-control">
-                    <option value="percentage" <%= category.taxType === "percentage" ? "selected" : "" %>>Percentage</option>
-                    <option value="fixed" <%= category.taxType === "fixed" ? "selected" : "" %>>Fixed</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Tax Amount</label>
-                <input type="number" name="tax" class="form-control" value="<%= category.tax %>">
-            </div>
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-            <a href="/" class="btn btn-secondary">Cancel</a>
-        </form>
+        </div>
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const taxApplicability = document.getElementById('taxApplicability');
+            const taxTypeContainer = document.getElementById('taxTypeContainer');
+            const taxAmountContainer = document.getElementById('taxAmountContainer');
+            const taxType = document.getElementById('taxType');
+            const taxInput = document.getElementById('tax');
+            const form = taxInput.closest('form');
+            
+            function toggleTaxFields() {
+                const isApplicable = taxApplicability.value === 'true';
+                taxTypeContainer.style.display = isApplicable ? 'block' : 'none';
+                taxAmountContainer.style.display = isApplicable ? 'block' : 'none';
+                
+                if (!isApplicable) {
+                    taxInput.value = '0';
+                }
+            }
+        
+            function validateTaxAmount() {
+                if (taxApplicability.value === 'false') return true;
+                
+                const taxValue = parseFloat(taxInput.value) || 0;
+                
+                if (taxType.value === "percentage") {
+                    if (taxValue < 1 || taxValue > 100) {
+                        alert("Percentage tax must be between 1 and 100.");
+                        taxInput.value = "";
+                        return false;
+                    }
+                } else if (taxType.value === "fixed") {
+                    if (taxValue < 1) {
+                        alert("Fixed tax must be at least 1.");
+                        taxInput.value = "";
+                        return false;
+                    }
+                }
+                return true;
+            }
+        
+            // Event Listeners
+            taxApplicability.addEventListener('change', toggleTaxFields);
+            taxType.addEventListener('change', validateTaxAmount);
+            taxInput.addEventListener('input', validateTaxAmount);
+            
+            // Form submission validation
+            form.addEventListener('submit', function(e) {
+                if (!validateTaxAmount()) {
+                    e.preventDefault();
+                }
+            });
+            
+            // Initial setup
+            toggleTaxFields();
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

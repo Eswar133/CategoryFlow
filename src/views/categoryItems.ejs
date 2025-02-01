@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Items in <%= category.name %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .navbar {
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "›";
+        }
+        .card {
+            height: 100%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-img-top {
+            height: 200px;
+            object-fit: cover;
+        }
+        .card-body {
+            display: flex;
+            flex-direction: column;
+        }
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        .card-text {
+            position: relative;
+            max-height: 4.5em;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        .card-text.expanded {
+            max-height: none;
+        }
+        .read-more {
+            color: #0d6efd;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        .tax-info, .price-info {
+            background-color: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        .form-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light mb-4">
+        <div class="container">
+            <a href="/categories" class="btn btn-outline-primary">
+                <i class="bi bi-grid"></i> Back to Categories
+            </a>
+            <nav aria-label="breadcrumb" class="ms-auto">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="/categories">Categories</a></li>
+                    <li class="breadcrumb-item active"><%= category.name %></li>
+                </ol>
+            </nav>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="text-center mb-4">Items only in <%= category.name %></h1>
+
+        <!-- Items List -->
+        <div class="row g-4">
+            <% if (items.length > 0) { %>
+                <% items.forEach(item => { %>
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="card">
+                            <img src="<%= item.image %>" class="card-img-top" alt="<%= item.name %>">
+                            <div class="card-body">
+                                <h5 class="card-title"><%= item.name %></h5>
+                                <div class="card-text" data-full-text="<%= item.description %>">
+                                    <%= item.description.length > 100 ? item.description.substring(0, 100) + '...' : item.description %>
+                                    <% if (item.description.length > 100) { %>
+                                        <span class="read-more">Read More</span>
+                                    <% } %>
+                                </div>
+                                <div class="price-info">
+                                    <div><strong>Base Price:</strong> ₹<%= item.baseAmount %></div>
+                                    <div><strong>Discount:</strong> ₹<%= item.discount %></div>
+                                    <div><strong>Final Price:</strong> ₹<%= item.totalAmount %></div>
+                                </div>
+                                <div class="tax-info">
+                                    <strong>Tax Status:</strong>
+                                    <% if (item.taxApplicability) { %>
+                                        <span class="text-success">Applicable</span>
+                                        <br>
+                                        <strong>Tax Type:</strong> <%= item.taxType === 'percentage' ? `${item.tax}%` : `₹${item.tax}` %>
+                                    <% } else { %>
+                                        <span class="text-danger">Not Applicable</span>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        No items available in this category.
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Read More functionality
+            document.querySelectorAll('.read-more').forEach(button => {
+                button.addEventListener('click', function() {
+                    const textContainer = this.closest('.card-text');
+                    const fullText = textContainer.dataset.fullText;
+                    
+                    if (textContainer.classList.contains('expanded')) {
+                        textContainer.classList.remove('expanded');
+                        textContainer.innerHTML = fullText.substring(0, 100) + '... <span class="read-more">Read More</span>';
+                    } else {
+                        textContainer.classList.add('expanded');
+                        textContainer.innerHTML = fullText + ' <span class="read-more">Show Less</span>';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

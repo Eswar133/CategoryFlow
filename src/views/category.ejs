@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Categories</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card {
+            height: 100%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-img-top {
+            height: 200px;
+            object-fit: cover;
+        }
+        .card-body {
+            display: flex;
+            flex-direction: column;
+        }
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        .card-text {
+            position: relative;
+            max-height: 4.5em;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        .card-text.expanded {
+            max-height: none;
+        }
+        .read-more {
+            color: #0d6efd;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        .tax-info {
+            background-color: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        .btn-group {
+            margin-top: auto;
+        }
+        .btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        .form-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-5">
+        <h1 class="text-center mb-4">Manage Categories</h1>
+        
+        <!-- Add Category Form -->
+        <div class="card form-card p-4 mb-5">
+            <h3 class="mb-4">Add New Category</h3>
+            <form action="/categories" method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label">Category Name</label>
+                        <input type="text" name="name" id="name" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="image" class="form-label">Image URL</label>
+                        <input type="url" name="image" id="image" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea name="description" id="description" class="form-control" required></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="taxApplicability" class="form-label">Tax Applicability</label>
+                        <select name="taxApplicability" id="taxApplicability" class="form-select" required>
+                            <option value="true">Applicable</option>
+                            <option value="false">Not Applicable</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="tax" class="form-label">Tax Amount</label>
+                        <input type="number" 
+                               name="tax" 
+                               id="tax" 
+                               class="form-control" 
+                               step="0.01" 
+                               required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="taxType" class="form-label">Tax Type</label>
+                        <select name="taxType" id="taxType" class="form-select" required>
+                            <option value="percentage">Percentage</option>
+                            <option value="fixed">Fixed</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Category</button>
+            </form>
+        </div>
+        
+        <!-- Categories List -->
+        <div class="row g-4">
+            <% if (categories.length > 0) { %>
+                <% categories.forEach(category => { %>
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="card">
+                            <img src="<%= category.image %>" class="card-img-top" alt="<%= category.name %>">
+                            <div class="card-body">
+                                <h5 class="card-title"><%= category.name %></h5>
+                                <div class="card-text" data-full-text="<%= category.description %>">
+                                    <%= category.description.length > 100 ? category.description.substring(0, 100) + '...' : category.description %>
+                                    <% if (category.description.length > 100) { %>
+                                        <span class="read-more">Read More</span>
+                                    <% } %>
+                                </div>
+                                <div class="tax-info">
+                                    <strong>Tax Status:</strong>
+                                    <% if (category.taxApplicability) { %>
+                                        <span class="text-success">Applicable</span>
+                                        <br>
+                                        <strong>Tax Type:</strong> <%= category.taxType === 'percentage' ? `${category.tax}%` : `₹${category.tax}` %>
+                                    <% } else { %>
+                                        <span class="text-danger">Not Applicable</span>
+                                    <% } %>
+                                </div>
+                                <div class="btn-group d-flex gap-2">
+                                    <a href="/categories/<%= category._id %>/subcategories" class="btn btn-primary flex-grow-1">
+                                        <i class="bi bi-list"></i> Subcategories
+                                    </a>
+                                    <a href="/categories/<%= category._id %>/items" class="btn btn-success flex-grow-1">
+                                        <i class="bi bi-box"></i> Items
+                                    </a>
+                                    <a href="/categories/edit/<%= category._id %>" class="btn btn-warning flex-grow-1">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        No categories available.
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get form elements
+            const taxApplicability = document.getElementById('taxApplicability');
+            const taxType = document.getElementById('taxType');
+            const taxInput = document.getElementById('tax');
+            const form = taxInput.closest('form');
+        
+            function toggleTaxFields() {
+                const isApplicable = taxApplicability.value === 'true';
+                // Show/hide tax related fields based on applicability
+                taxType.closest('.col-md-4').style.display = isApplicable ? 'block' : 'none';
+                taxInput.closest('.col-md-4').style.display = isApplicable ? 'block' : 'none';
+                
+                if (!isApplicable) {
+                    taxInput.value = '0';
+                }
+            }
+        
+            function validateTaxAmount() {
+                if (taxApplicability.value === 'false') return true;
+                
+                const taxValue = parseFloat(taxInput.value) || 0;
+                
+                if (taxType.value === "percentage") {
+                    if (taxValue < 1 || taxValue > 100) {
+                        alert("Percentage tax must be between 1 and 100.");
+                        taxInput.value = "";
+                        return false;
+                    }
+                } else if (taxType.value === "fixed") {
+                    if (taxValue < 1) {
+                        alert("Fixed tax must be at least 1.");
+                        taxInput.value = "";
+                        return false;
+                    }
+                }
+                return true;
+            }
+        
+            // Add event listeners
+            taxApplicability.addEventListener('change', toggleTaxFields);
+            taxType.addEventListener('change', validateTaxAmount);
+            taxInput.addEventListener('input', validateTaxAmount);
+            
+            // Form submission validation
+            form.addEventListener('submit', function(e) {
+                if (!validateTaxAmount()) {
+                    e.preventDefault();
+                }
+            });
+        
+            // Initialize the form state
+            toggleTaxFields();
+        
+            // Existing read more functionality
+            document.querySelectorAll('.read-more').forEach(button => {
+                button.addEventListener('click', function() {
+                    const textContainer = this.closest('.card-text');
+                    const fullText = textContainer.dataset.fullText;
+                    
+                    if (textContainer.classList.contains('expanded')) {
+                        textContainer.classList.remove('expanded');
+                        textContainer.innerHTML = fullText.substring(0, 100) + '... <span class="read-more">Read More</span>';
+                    } else {
+                        textContainer.classList.add('expanded');
+                        textContainer.innerHTML = fullText + ' <span class="read-more">Show Less</span>';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

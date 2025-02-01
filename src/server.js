@@ -1,61 +1,38 @@
-const express = require("express");
-const dotenv = require("dotenv");
-const cors = require("cors");
-const morgan = require("morgan");
-const connectDB = require("./config/db");
-const methodOverride = require("method-override");
-
-dotenv.config();
-connectDB();
+require('dotenv').config(); // Load environment variables
+const express = require('express');
+const mongoose = require('mongoose');
+const ejs = require('ejs');
+const methodOverride = require('method-override');
+const path = require('path');
+const expressLayouts = require('express-ejs-layouts');
 
 const app = express();
 
-// ✅ Middleware
-app.use(cors());
-app.use(express.json());
+// Database connection
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost/menu-management';
+mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB Connected'))
+  .catch(err => console.log('MongoDB Connection Error:', err));
+
+// Middleware
 app.use(express.urlencoded({ extended: true }));
-app.use(morgan("dev"));
-app.use(methodOverride("_method"));
+app.use(methodOverride('_method'));
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
 
-// ✅ Set EJS as view engine
-app.set("view engine", "ejs");
-app.set("views", "views");
+// Routes
+const categoryRoutes = require('./routes/categoryRoutes');
+const subCategoryRoutes = require('./routes/subCategoryRoutes');
+const itemRoutes = require('./routes/itemRoutes');
 
-// ✅ Import Routes (Check if paths exist)
-try {
-    const categoryRoutes = require("./routes/categoryRoutes");
-    const subCategoryRoutes = require("./routes/subCategoryRoutes");
-    const itemRoutes = require("./routes/itemRoutes");
+app.use('/categories', categoryRoutes);
+app.use('/subcategories', subCategoryRoutes);
+app.use('/items', itemRoutes);
 
-    app.use("/api/v1/categories", categoryRoutes);
-    app.use("/api/v1/subcategories", subCategoryRoutes);
-    app.use("/api/v1/items", itemRoutes);
-} catch (error) {
-    console.error("❌ Error loading routes:", error);
-}
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// ✅ Home Route -> Redirect to Categories Page
-app.get("/", async (req, res) => {
-    try {
-        const Category = require("./models/Category");
-
-        const categories = await Category.find();
-        res.render("categories", { categories });
-    } catch (error) {
-        console.error("❌ Error loading categories:", error);
-        res.status(500).send("Server Error");
-    }
+// Home Route
+app.get('/', (req, res) => {
+  res.redirect('/categories');
 });
 
-// ✅ Global Error Handler
-app.use((err, req, res, next) => {
-    console.error("❌ Server Error:", err.stack);
-    res.status(err.status || 500).json({ message: err.message || "Server Error" });
-});
-
-// ✅ Start Server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Item - <%= item.name %></title>
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8fafc;
+            margin: 20px;
+        }
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .text-warning { color: #d97706; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Page Header -->
+    <h1 class="text-center mb-4">Edit Item - <%= item.name %></h1>
+    <p class="text-center">Category: <strong><%= category.name %></strong></p>
+
+    <!-- Edit Item Form -->
+    <div class="form-container">
+        <form action="/items" method="POST">
+            <input type="hidden" name="category" value="<%= category._id %>">
+            <input type="hidden" name="subCategory" value="">
+
+            <div class="mb-3">
+                <label for="name" class="form-label">Item Name</label>
+                <input type="text" id="name" name="name" class="form-control" value="<%= item.name %>" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="image" class="form-label">Image URL</label>
+                <input type="url" id="image" name="image" class="form-control" value="<%= item.image %>" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea id="description" name="description" class="form-control" rows="3"><%= item.description %></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="baseAmount" class="form-label">Base Amount</label>
+                    <input type="number" id="baseAmount" name="baseAmount" class="form-control" value="<%= item.baseAmount %>" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="discount" class="form-label">Discount</label>
+                    <input type="number" id="discount" name="discount" class="form-control" value="<%= item.discount %>">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="totalAmount" class="form-label">Total Amount</label>
+                    <input type="number" id="totalAmount" name="totalAmount" class="form-control" value="<%= item.totalAmount %>" readonly>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="taxApplicability" class="form-label">Tax Applicability</label>
+                    <select id="taxApplicability" name="taxApplicability" class="form-control">
+                        <option value="true" <%= item.taxApplicability ? "selected" : "" %>>Applicable</option>
+                        <option value="false" <%= !item.taxApplicability ? "selected" : "" %>>Not Applicable</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3 tax-field">
+                    <label for="taxType" class="form-label">Tax Type</label>
+                    <select id="taxType" name="taxType" class="form-control">
+                        <option value="percentage" <%= item.taxType === "percentage" ? "selected" : "" %>>Percentage</option>
+                        <option value="fixed" <%= item.taxType === "fixed" ? "selected" : "" %>>Fixed</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3 tax-field">
+                    <label for="tax" class="form-label">Tax Amount</label>
+                    <input type="number" id="tax" name="tax" class="form-control" value="<%= item.tax %>">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- JavaScript for Form Validations and Field Visibility -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const baseAmountInput = document.getElementById("baseAmount");
+        const discountInput = document.getElementById("discount");
+        const taxInput = document.getElementById("tax");
+        const taxTypeInput = document.getElementById("taxType");
+        const taxApplicabilityInput = document.getElementById("taxApplicability");
+        const totalAmountInput = document.getElementById("totalAmount");
+        const taxFields = document.querySelectorAll(".tax-field");
+
+        function toggleTaxFields() {
+            if (taxApplicabilityInput.value === "true") {
+                taxFields.forEach(field => field.classList.remove("hidden"));
+            } else {
+                taxFields.forEach(field => field.classList.add("hidden"));
+                taxInput.value = ""; // Reset tax value if hidden
+            }
+            updateTotalAmount();
+        }
+
+        function validateTaxAmount() {
+            let taxValue = parseFloat(taxInput.value) || 0;
+            if (taxTypeInput.value === "percentage") {
+                if (taxValue < 1 || taxValue > 100) {
+                    alert("Percentage tax must be between 1 and 100.");
+                    taxInput.value = "";
+                }
+            } else if (taxTypeInput.value === "fixed") {
+                if (taxValue < 1) {
+                    alert("Fixed tax must be at least 1.");
+                    taxInput.value = "";
+                }
+            }
+        }
+
+        function updateTotalAmount() {
+            let baseAmount = parseFloat(baseAmountInput.value) || 0;
+            let discount = parseFloat(discountInput.value) || 0;
+            let tax = parseFloat(taxInput.value) || 0;
+            let taxType = taxTypeInput.value;
+
+            let totalAmount = baseAmount - discount;
+
+            if (taxApplicabilityInput.value === "true") {
+                if (taxType === "percentage") {
+                    totalAmount += (totalAmount * tax) / 100;
+                } else {
+                    totalAmount += tax;
+                }
+            }
+            totalAmountInput.value = totalAmount.toFixed(2);
+        }
+
+        // Event Listeners
+        taxApplicabilityInput.addEventListener("change", toggleTaxFields);
+        taxTypeInput.addEventListener("change", validateTaxAmount);
+        taxInput.addEventListener("input", validateTaxAmount);
+        baseAmountInput.addEventListener("input", updateTotalAmount);
+        discountInput.addEventListener("input", updateTotalAmount);
+        taxInput.addEventListener("input", updateTotalAmount);
+        taxTypeInput.addEventListener("change", updateTotalAmount);
+
+        // Initialize fields based on existing values
+        toggleTaxFields();
+    });
+</script>
+
+</body>
+</html>
